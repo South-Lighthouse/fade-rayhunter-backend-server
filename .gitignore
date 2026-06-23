@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+*.sqlite3
+.DS_Store
+data/
+nginx/nginx.conf
+/static/
+/media/
+*.log
+.pytest_cache/
+htmlcov/
+.coverage
