@@ -4,7 +4,8 @@ from django.db import models
 class TelemetryRecord(models.Model):
     sensor = models.ForeignKey(
         "sensors.Sensor",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name="telemetry",
     )
     event_type = models.CharField(max_length=100)
