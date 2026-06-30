@@ -4,7 +4,7 @@ from .models import TelemetryRecord
 
 @admin.register(TelemetryRecord)
 class TelemetryRecordAdmin(admin.ModelAdmin):
-    list_display = ["device_id", "sensor", "ip_address", "received_at"]
-    list_filter = ["sensor"]
-    search_fields = ["device_id", "ip_address"]
-    readonly_fields = ["received_at"]
+    list_display = ["sensor", "event_type", "message", "device_timestamp", "received_at"]
+    list_filter = ["sensor", "event_type"]
+    search_fields = ["sensor__slug", "event_type", "message"]
+    readonly_fields = ["received_at", "raw_payload"]

@@ -3,7 +3,11 @@ from .models import TelemetryRecord
 
 
 class TelemetryRecordSerializer(serializers.ModelSerializer):
+    sensor_slug = serializers.CharField(source="sensor.slug", read_only=True)
+
     class Meta:
         model = TelemetryRecord
-        fields = ["id", "device_id", "sensor", "payload", "ip_address", "received_at"]
-        read_only_fields = ["id", "ip_address", "received_at"]
+        fields = [
+            "id", "sensor_slug", "event_type", "message",
+            "device_timestamp", "ip_address", "received_at",
+        ]
