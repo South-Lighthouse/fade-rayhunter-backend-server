@@ -90,6 +90,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # File upload storage
 UPLOAD_ROOT = config("UPLOAD_ROOT", default=os.path.join(BASE_DIR, "data", "uploads"))
 
+# Base URL shown in sensor QR codes — must end without a slash.
+# Set this to the public-facing URL of this server (e.g. https://dashboard.fadeproject.org).
+TELEMETRY_BASE_URL = config("TELEMETRY_BASE_URL", default="http://localhost:8000")
+
 # Celery
 REDIS_URL = config("REDIS_URL", default="redis://redis:6379/0")
 CELERY_BROKER_URL = REDIS_URL

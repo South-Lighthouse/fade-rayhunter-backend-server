@@ -8,3 +8,4 @@ djangorestframework>=3.14
 django-cors-headers>=4.3
 python-decouple>=3.8
 django-extensions>=3.2
+qrcode[pil]>=7.4
