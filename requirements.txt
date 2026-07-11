@@ -9,4 +9,5 @@ django-cors-headers>=4.3
 python-decouple>=3.8
 django-extensions>=3.2
 qrcode[pil]>=7.4
-django-two-factor-auth[totp]>=1.14,<1.15
+django-two-factor-auth[totp]>=1.15
+phonenumbers>=8.13
