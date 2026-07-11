@@ -10,8 +10,8 @@ git reset --hard origin/main
 echo "==> Rebuilding and restarting app containers..."
 docker compose up -d --build web worker
 
-echo "==> Reloading nginx (picks up config changes)..."
-docker compose up -d nginx
+echo "==> Restarting nginx (re-resolves upstream after web rebuild)..."
+docker compose restart nginx
 
 echo "==> Running migrations..."
 docker compose exec web python manage.py migrate
