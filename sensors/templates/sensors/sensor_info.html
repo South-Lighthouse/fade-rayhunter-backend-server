@@ -1,0 +1,104 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block content %}
+<style>
+  .info-sheet { max-width: 720px; margin: 0 auto; }
+  .info-sheet h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .info-sheet .subtitle { color: #888; font-size: 0.875rem; margin: 0 0 24px; }
+  .info-sheet-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .info-grid { display: grid; grid-template-columns: 220px 1fr; gap: 20px; align-items: start; }
+  .card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 18px; }
+  .card-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin: 0 0 14px; }
+  .card table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .card td { padding: 5px 0; vertical-align: top; }
+  .card td:first-child { color: #888; width: 100px; white-space: nowrap; padding-right: 12px; }
+  .card td code { font-family: monospace; font-size: 0.9rem; word-break: break-all; }
+  .card-empty { color: #aaa; font-size: 0.875rem; }
+  .qr-card { text-align: center; }
+  .qr-card img { display: block; margin: 0 auto 10px; width: 188px; height: 188px; image-rendering: pixelated; }
+  .qr-card .qr-label { font-size: 0.75rem; color: #888; }
+  .details-col { display: flex; flex-direction: column; gap: 16px; }
+  .print-btn { padding: 8px 18px; background: #79aec8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; text-decoration: none; }
+  .print-btn:hover { background: #5b9ab5; color: #fff; }
+  @media print {
+    #nav-sidebar, .breadcrumbs, #header, .print-btn, #footer { display: none !important; }
+    body { background: white; }
+    .info-sheet { max-width: 100%; }
+    .card { border: 1px solid #ccc; }
+  }
+  @media (max-width: 560px) {
+    .info-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="info-sheet">
+  <div class="info-sheet-header">
+    <div>
+      <h1>{{ sensor.name }}</h1>
+      <p class="subtitle">Sensor info sheet</p>
+    </div>
+    <a href="javascript:window.print()" class="print-btn">Print / Save PDF</a>
+  </div>
+
+  <div class="info-grid">
+
+    <!-- QR code column -->
+    <div class="card qr-card">
+      {% if qr_b64 %}
+        <img src="data:image/png;base64,{{ qr_b64 }}" alt="Telemetry config QR code">
+        <span class="qr-label">Telemetry config QR<br><small>Right-click → Copy image</small></span>
+      {% else %}
+        <span class="card-empty">No API key generated yet</span>
+      {% endif %}
+    </div>
+
+    <!-- Details column -->
+    <div class="details-col">
+
+      <!-- WebDAV -->
+      <div class="card">
+        <p class="card-title">WebDAV credentials</p>
+        <table>
+          <tr>
+            <td>Username</td>
+            <td><code>{{ sensor.webdav_user }}</code></td>
+          </tr>
+          <tr>
+            <td>Password</td>
+            <td><code>{{ sensor.webdav_password }}</code></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Device type -->
+      <div class="card">
+        <p class="card-title">Device</p>
+        {% if sensor.sensor_type %}
+          <table>
+            <tr>
+              <td>Model</td>
+              <td>{{ sensor.sensor_type.name }}</td>
+            </tr>
+            <tr>
+              <td>Default IP</td>
+              <td><code>{{ sensor.sensor_type.default_ip_address|default:"—" }}</code></td>
+            </tr>
+            {% if sensor.sensor_type.notes %}
+            <tr>
+              <td>Notes</td>
+              <td>{{ sensor.sensor_type.notes }}</td>
+            </tr>
+            {% endif %}
+          </table>
+        {% else %}
+          <span class="card-empty">No device type assigned — edit the sensor to set one.</span>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
