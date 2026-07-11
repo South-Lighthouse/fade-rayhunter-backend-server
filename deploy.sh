@@ -3,7 +3,9 @@
 set -e
 
 echo "==> Pulling latest code..."
-git pull origin main
+git fetch origin main
+git clean -fd
+git reset --hard origin/main
 
 echo "==> Rebuilding and restarting app containers..."
 docker compose up -d --build web worker
