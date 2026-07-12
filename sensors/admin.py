@@ -21,6 +21,7 @@ class SensorTypeAdmin(admin.ModelAdmin):
 @admin.register(Sensor)
 class SensorAdmin(admin.ModelAdmin):
     list_display = ["info_sheet_button", "name", "slug", "sensor_type", "webdav_user", "is_active", "created_at"]
+    list_display_links = ["name"]
     list_filter = ["is_active", "sensor_type"]
     search_fields = ["name", "slug", "webdav_user"]
     readonly_fields = ["slug", "api_key", "telemetry_qr_code", "info_sheet_button", "created_at", "updated_at"]
