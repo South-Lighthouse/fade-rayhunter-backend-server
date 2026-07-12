@@ -46,13 +46,16 @@ class SensorAdmin(admin.ModelAdmin):
     @staticmethod
     def _build_qr_b64(sensor):
         base_url = getattr(settings, "TELEMETRY_BASE_URL", "http://localhost:8000").rstrip("/")
-        payload = json.dumps({
+        data = {
             "telemetry_url": f"{base_url}/api/telemetry/",
             "api_key": (sensor.api_key or "").strip(),
             "webdav_url": f"{base_url}/webdav/{sensor.slug}/",
             "webdav_user": (sensor.webdav_user or "").strip(),
             "webdav_password": (sensor.webdav_password or "").strip(),
-        })
+        }
+        if sensor.sensor_type and sensor.sensor_type.default_ip_address.strip():
+            data["device_ip"] = sensor.sensor_type.default_ip_address.strip()
+        payload = json.dumps(data)
         img = qrcode.make(payload)
         buf = io.BytesIO()
         img.save(buf, format="PNG")
