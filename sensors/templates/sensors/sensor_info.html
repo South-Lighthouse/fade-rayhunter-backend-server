@@ -77,6 +77,14 @@
         </table>
       </div>
 
+      <!-- Notes -->
+      {% if sensor.notes %}
+      <div class="card">
+        <p class="card-title">Notes</p>
+        <p style="font-size: 0.9rem; margin: 0; white-space: pre-wrap;">{{ sensor.notes }}</p>
+      </div>
+      {% endif %}
+
       <!-- Device type -->
       <div class="card">
         <p class="card-title">Device</p>
