@@ -88,10 +88,12 @@ class SensorAdmin(admin.ModelAdmin):
     def info_view(self, request, pk):
         sensor = get_object_or_404(Sensor, pk=pk)
         qr_b64 = self._build_qr_b64(sensor) if sensor.api_key else None
+        base_url = getattr(settings, "TELEMETRY_BASE_URL", "http://localhost:8000").rstrip("/")
         context = {
             **self.admin_site.each_context(request),
             "sensor": sensor,
             "qr_b64": qr_b64,
+            "webdav_url": f"{base_url}/webdav/{sensor.slug}/",
             "title": f"Info sheet — {sensor.name}",
         }
         return render(request, "sensors/sensor_info.html", context)
