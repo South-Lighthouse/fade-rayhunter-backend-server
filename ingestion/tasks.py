@@ -5,9 +5,6 @@ from celery import shared_task
 
 logger = logging.getLogger(__name__)
 
-TRACKED_EXTENSIONS = {".qmdl", ".json"}
-
-
 @shared_task(name="ingestion.tasks.scan_upload_directory")
 def scan_upload_directory():
     """
@@ -31,9 +28,6 @@ def scan_upload_directory():
 
         for dirpath, _, filenames in os.walk(sensor_dir):
             for filename in filenames:
-                _, ext = os.path.splitext(filename)
-                if ext.lower() not in TRACKED_EXTENSIONS:
-                    continue
 
                 full_path = os.path.join(dirpath, filename)
                 relative_path = os.path.relpath(full_path, upload_root)
