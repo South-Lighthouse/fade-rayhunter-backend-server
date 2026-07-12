@@ -48,7 +48,10 @@ class SensorAdmin(admin.ModelAdmin):
         base_url = getattr(settings, "TELEMETRY_BASE_URL", "http://localhost:8000").rstrip("/")
         payload = json.dumps({
             "telemetry_url": f"{base_url}/api/telemetry/",
-            "api_key": sensor.api_key,
+            "api_key": (sensor.api_key or "").strip(),
+            "webdav_url": f"{base_url}/webdav/{sensor.slug}/",
+            "webdav_user": (sensor.webdav_user or "").strip(),
+            "webdav_password": (sensor.webdav_password or "").strip(),
         })
         img = qrcode.make(payload)
         buf = io.BytesIO()
