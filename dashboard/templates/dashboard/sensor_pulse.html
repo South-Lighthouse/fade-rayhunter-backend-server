@@ -1,0 +1,82 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{{ sensor.name }} pulse | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block content %}
+{% include "dashboard/_report_style.html" %}
+<style>
+  .pulse-wrap { max-width: 900px; margin: 0 auto; }
+  .pulse-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .pulse-header h1 { margin: 0 0 4px; font-size: 1.4rem; }
+  .alert-banner { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
+  .alert-banner.stale { background: #fdecec; border: 1px solid #f3c6c6; color: #8a2f2f; }
+  .alert-banner.never { background: #eee; border: 1px solid #ddd; color: #555; }
+  .alert-banner.ok { background: #eef9f1; border: 1px solid #bfe3c8; color: #1f5c33; }
+  .timeline-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .timeline-table th, .timeline-table td { padding: 6px 10px; border-bottom: 1px solid #eee; text-align: left; }
+  .timeline-table th { color: #888; font-size: 0.72rem; text-transform: uppercase; }
+  .kind-upload { color: #2a6ea6; }
+  .kind-telemetry { color: #7a5c2e; }
+</style>
+
+<div class="pulse-wrap">
+  <div class="pulse-header">
+    <div>
+      <h1>{{ sensor.name }}</h1>
+      <span class="badge badge-{{ sensor.status }}">{{ sensor.status_label }}</span>
+    </div>
+    <form method="get" style="display: flex; gap: 10px; align-items: flex-end;">
+      <div>
+        <label for="id_stale_hours" style="display:block; font-size:0.72rem; color:#888;">Stale after (hours)</label>
+        <input type="number" id="id_stale_hours" name="stale_hours" min="1" value="{{ stale_hours }}" style="width: 90px;">
+      </div>
+      <div>
+        <label for="id_days" style="display:block; font-size:0.72rem; color:#888;">Timeline window (days)</label>
+        <input type="number" id="id_days" name="days" min="1" value="{{ days }}" style="width: 90px;">
+      </div>
+      <button type="submit" class="print-btn">Apply</button>
+    </form>
+  </div>
+
+  {% if sensor.status == "stale" %}
+    <div class="alert-banner stale">
+      ⚠ No activity in {{ sensor.hours_since_seen|floatformat:0 }} hours — threshold is {{ stale_hours }} hours.
+      Last seen {{ sensor.last_seen }}.
+    </div>
+  {% elif sensor.status == "never" %}
+    <div class="alert-banner never">
+      This sensor has never sent an upload or telemetry event.
+    </div>
+  {% else %}
+    <div class="alert-banner ok">
+      Reporting normally. Last seen {{ sensor.last_seen }} ({{ sensor.hours_since_seen|floatformat:1 }} hours ago).
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <p class="card-title">Daily activity (last {{ days }} days)</p>
+    {{ chart_svg|safe }}
+  </div>
+
+  <div class="card">
+    <p class="card-title">Timeline</p>
+    <table class="timeline-table">
+      <thead>
+        <tr><th>When</th><th>Type</th><th>Detail</th></tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+        <tr>
+          <td>{{ event.timestamp }}</td>
+          <td class="kind-{{ event.kind }}">{{ event.kind }}</td>
+          <td>{{ event.detail }}{% if event.extra %} &mdash; <span style="color:#888;">{{ event.extra }}</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="empty">No activity in this window.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

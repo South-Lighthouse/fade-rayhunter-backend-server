@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{{ country.name }} report | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block content %}
+{% include "dashboard/_report_style.html" %}
+
+<div style="max-width: 900px; margin: 0 auto 16px; display: flex; justify-content: space-between; align-items: flex-start;">
+  <form method="get" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+    <div>
+      <label for="id_start" style="display:block; font-size:0.75rem; color:#888;">Start date</label>
+      <input type="date" id="id_start" name="start" value="{{ start_date|date:'Y-m-d' }}">
+    </div>
+    <div>
+      <label for="id_end" style="display:block; font-size:0.75rem; color:#888;">End date</label>
+      <input type="date" id="id_end" name="end" value="{{ end_date|date:'Y-m-d' }}">
+    </div>
+    <div>
+      <label for="id_stale_hours" style="display:block; font-size:0.75rem; color:#888;">Stale after (hours)</label>
+      <input type="number" id="id_stale_hours" name="stale_hours" min="1" value="{{ stale_hours }}" style="width: 80px;">
+    </div>
+    <button type="submit" class="print-btn">Apply</button>
+  </form>
+  <a href="javascript:window.print()" class="print-btn">Print / Save PDF</a>
+</div>
+
+{% include "dashboard/_country_report_body.html" %}
+{% endblock %}

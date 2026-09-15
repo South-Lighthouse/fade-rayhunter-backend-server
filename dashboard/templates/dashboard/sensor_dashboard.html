@@ -1,0 +1,70 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Sensor dashboard | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block content %}
+{% include "dashboard/_report_style.html" %}
+<style>
+  .dash-wrap { max-width: 1100px; margin: 0 auto; }
+  .country-section { margin-bottom: 32px; }
+  .country-heading { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .country-heading h2 { margin: 0; font-size: 1.2rem; }
+  .country-heading .report-link { font-size: 0.85rem; }
+  .sensor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+  .sensor-card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; }
+  .sensor-card h3 { margin: 0 0 6px; font-size: 1rem; }
+  .sensor-card h3 a { color: inherit; text-decoration: none; }
+  .sensor-card h3 a:hover { text-decoration: underline; }
+  .sensor-card .type { color: #888; font-size: 0.8rem; margin-bottom: 8px; }
+  .sensor-card dl { margin: 0; font-size: 0.82rem; }
+  .sensor-card dt { color: #888; float: left; width: 90px; clear: left; }
+  .sensor-card dd { margin: 0 0 4px 90px; }
+  .empty-group { color: #aaa; font-size: 0.875rem; }
+</style>
+
+<div class="dash-wrap">
+  <form method="get" style="margin-bottom: 24px; display: flex; gap: 10px; align-items: flex-end;">
+    <div>
+      <label for="id_stale_hours" style="display:block; font-size:0.75rem; color:#888;">Alert if silent for more than (hours)</label>
+      <input type="number" id="id_stale_hours" name="stale_hours" min="1" value="{{ stale_hours }}" style="width: 100px;">
+    </div>
+    <button type="submit" class="print-btn">Apply</button>
+  </form>
+
+  {% for group in groups %}
+  <div class="country-section">
+    <div class="country-heading">
+      <h2>{{ group.country.name|default:"Unassigned" }}</h2>
+      {% if group.country %}
+        <a class="report-link" href="{% url 'admin:sensors_country_report' group.country.pk %}">Generate report →</a>
+      {% endif %}
+    </div>
+
+    {% if group.sensors %}
+      <div class="card">
+        <p class="card-title">Uploads per day (last 14 days)</p>
+        {{ group.trend_svg|safe }}
+      </div>
+      <div class="sensor-grid">
+        {% for sensor in group.sensors %}
+        <div class="sensor-card">
+          <h3><a href="{% url 'admin:sensors_sensor_pulse' sensor.pk %}">{{ sensor.name }}</a></h3>
+          <div class="type">{{ sensor.sensor_type|default:"No device type" }}</div>
+          <span class="badge badge-{{ sensor.status }}">{{ sensor.status_label }}</span>
+          <dl style="margin-top: 8px;">
+            <dt>Last upload</dt><dd>{{ sensor.last_upload|default:"—" }}</dd>
+            <dt>Last telemetry</dt><dd>{{ sensor.last_telemetry|default:"—" }}</dd>
+          </dl>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-group">No sensors assigned to this country yet.</p>
+    {% endif %}
+  </div>
+  {% empty %}
+    <p class="empty-group">No countries registered yet — add one in the Countries admin.</p>
+  {% endfor %}
+</div>
+{% endblock %}

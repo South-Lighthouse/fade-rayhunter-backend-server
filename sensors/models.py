@@ -15,11 +15,34 @@ class SensorType(models.Model):
         return self.name
 
 
+class Country(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=10, blank=True)
+    report_recipients = models.TextField(
+        blank=True,
+        help_text="Comma-separated email addresses for this country's local group (not used to send anything yet).",
+    )
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name_plural = "countries"
+
+    def __str__(self):
+        return self.name
+
+
 class Sensor(models.Model):
     name = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     sensor_type = models.ForeignKey(
         SensorType,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="sensors",
+    )
+    country = models.ForeignKey(
+        Country,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,

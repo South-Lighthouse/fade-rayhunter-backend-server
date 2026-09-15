@@ -1,0 +1,61 @@
+<div class="report">
+  <div class="report-header">
+    <h1>{{ country.name }} — Sensor Activity Report</h1>
+    <p class="subtitle">{{ start_date }} to {{ end_date }} &middot; generated {{ generated_at|date:"Y-m-d H:i e" }}</p>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <span class="summary-value">{{ totals.sensor_count }}</span>
+      <span class="summary-label">Sensors</span>
+    </div>
+    <div class="summary-card ok">
+      <span class="summary-value">{{ totals.ok_count }}</span>
+      <span class="summary-label">Reporting OK</span>
+    </div>
+    <div class="summary-card attention">
+      <span class="summary-value">{{ totals.attention_count }}</span>
+      <span class="summary-label">Needs attention</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-value">{{ totals.upload_count }}</span>
+      <span class="summary-label">Uploads in range</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-value">{{ totals.telemetry_count }}</span>
+      <span class="summary-label">Telemetry events</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Uploads per day</p>
+    {{ chart_svg|safe }}
+  </div>
+
+  <table class="report-table">
+    <thead>
+      <tr>
+        <th>Sensor</th>
+        <th>Status</th>
+        <th>Last seen</th>
+        <th>Uploads</th>
+        <th>Data uploaded</th>
+        <th>Telemetry events</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr class="status-{{ row.status }}">
+        <td>{{ row.sensor.name }}</td>
+        <td><span class="badge badge-{{ row.status }}">{{ row.status_label }}</span></td>
+        <td>{{ row.last_seen|default:"—" }}</td>
+        <td>{{ row.upload_count }}</td>
+        <td>{{ row.total_bytes|filesizeformat }}</td>
+        <td>{{ row.telemetry_count }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="empty">No sensors assigned to this country yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,29 @@
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; }
+  .report { max-width: 900px; margin: 0 auto; }
+  .report-header h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .report-header .subtitle { color: #888; font-size: 0.875rem; margin: 0 0 20px; }
+  .card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+  .card-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin: 0 0 14px; }
+  .chart-empty { color: #aaa; font-size: 0.875rem; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .summary-card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; text-align: center; }
+  .summary-card.ok { border-color: #bfe3c8; background: #eef9f1; }
+  .summary-card.attention { border-color: #f3c6c6; background: #fdecec; }
+  .summary-value { display: block; font-size: 1.5rem; font-weight: 700; }
+  .summary-label { display: block; font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+  .report-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .report-table th, .report-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; }
+  .report-table th { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .report-table .empty { text-align: center; color: #aaa; padding: 20px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
+  .badge-ok { background: #eef9f1; color: #2a7a43; }
+  .badge-stale { background: #fdecec; color: #b23b3b; }
+  .badge-never { background: #eee; color: #777; }
+  .print-btn { padding: 8px 18px; background: #79aec8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; text-decoration: none; }
+  .print-btn:hover { background: #5b9ab5; color: #fff; }
+  @media print {
+    #nav-sidebar, .breadcrumbs, #header, .print-btn, #footer { display: none !important; }
+    body { background: white; }
+  }
+</style>

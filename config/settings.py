@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "sensors",
     "ingestion",
     "telemetry",
+    "dashboard",
 ]
 
 MIDDLEWARE = [
@@ -113,6 +114,10 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
 FILE_SCAN_INTERVAL = config("FILE_SCAN_INTERVAL", default=30, cast=int)
+
+# Hours of silence (no upload and no telemetry) before a sensor is flagged as
+# "stale" on the monitoring dashboard. Adjustable per-request via ?stale_hours=.
+SENSOR_STALE_HOURS = config("SENSOR_STALE_HOURS", default=96, cast=int)
 
 CELERY_BEAT_SCHEDULE = {
     "scan-uploads": {
