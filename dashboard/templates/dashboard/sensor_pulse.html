@@ -39,6 +39,10 @@
     </form>
   </div>
 
+  <div style="text-align: right; margin-bottom: 16px;">
+    <a href="javascript:window.print()" class="print-btn">Print / Save PDF</a>
+  </div>
+
   {% if sensor.status == "stale" %}
     <div class="alert-banner stale">
       ⚠ No activity in {{ sensor.hours_since_seen|floatformat:0 }} hours — threshold is {{ stale_hours }} hours.

@@ -6,6 +6,12 @@
   .card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
   .card-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin: 0 0 14px; }
   .chart-empty { color: #aaa; font-size: 0.875rem; }
+  .chart-point .hover-guide, .chart-point .tooltip { opacity: 0; pointer-events: none; transition: opacity 0.1s; }
+  .chart-point .hover-guide { stroke: #bbb; stroke-width: 1; stroke-dasharray: 2,2; }
+  .chart-point .tooltip rect { fill: #333; }
+  .chart-point .tooltip text { fill: #fff; font-size: 9px; }
+  .chart-point:hover .hover-guide, .chart-point:hover .tooltip { opacity: 1; }
+  .chart-point .hit-area { cursor: default; }
   .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
   .summary-card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px; text-align: center; }
   .summary-card.ok { border-color: #bfe3c8; background: #eef9f1; }

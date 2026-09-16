@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.db.models import Count, Max
 from django.db.models.functions import TruncDate
+from django.template.defaultfilters import filesizeformat
 from django.utils import timezone
 
 from ingestion.models import IngestedFile
@@ -102,7 +103,7 @@ def sensor_timeline_events(sensor, days, limit=200):
                 "timestamp": f.uploaded_at,
                 "kind": "upload",
                 "detail": f.filename,
-                "extra": f"{f.file_size or 0} bytes · {f.get_status_display()}",
+                "extra": f"{filesizeformat(f.file_size or 0)} · {f.get_status_display()}",
             }
         )
     for t in sensor.telemetry.filter(received_at__gte=since).order_by("-received_at")[:limit]:
