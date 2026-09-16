@@ -6,6 +6,10 @@
 {% block content %}
 {% include "dashboard/_report_style.html" %}
 
+<p style="max-width: 900px; margin: 0 auto 10px;">
+  <a href="{% url 'admin:sensors_sensor_dashboard' %}" style="color:#79aec8; text-decoration:none; font-size:0.85rem;">&larr; Back to dashboard</a>
+</p>
+
 <div style="max-width: 900px; margin: 0 auto 16px; display: flex; justify-content: space-between; align-items: flex-start;">
   <form method="get" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
     <div>
