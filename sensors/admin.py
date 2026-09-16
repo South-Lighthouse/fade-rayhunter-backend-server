@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 
-from dashboard.pulse import annotate_pulse, dashboard_groups, merged_daily_series, sensor_timeline_events
+from dashboard.pulse import annotate_pulse, daily_series_for_range, dashboard_groups, sensor_timeline_events
 from dashboard.reports import build_country_report
 from dashboard.svg_charts import render_daily_series_svg
 
@@ -24,6 +24,29 @@ def _stale_hours_from_request(request):
         return int(request.GET.get("stale_hours") or default)
     except (TypeError, ValueError):
         return default
+
+
+def _date_range_from_request(request, default_days):
+    """
+    Parses ?start=&end= (YYYY-MM-DD) from the request, falling back to a
+    trailing `default_days`-day window ending today. Swaps the two if the
+    user enters them backwards, rather than erroring.
+    """
+    today = date.today()
+
+    def _parse(value, fallback):
+        if not value:
+            return fallback
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            return fallback
+
+    start_date = _parse(request.GET.get("start"), today - timedelta(days=default_days - 1))
+    end_date = _parse(request.GET.get("end"), today)
+    if end_date < start_date:
+        start_date, end_date = end_date, start_date
+    return start_date, end_date
 
 
 @admin.register(SensorType)
@@ -63,20 +86,7 @@ class CountryAdmin(admin.ModelAdmin):
     def report_view(self, request, pk):
         country = get_object_or_404(Country, pk=pk)
 
-        today = date.today()
-
-        def _parse_date(value, fallback):
-            if not value:
-                return fallback
-            try:
-                return date.fromisoformat(value)
-            except ValueError:
-                return fallback
-
-        start_date = _parse_date(request.GET.get("start"), today - timedelta(days=6))
-        end_date = _parse_date(request.GET.get("end"), today)
-        if end_date < start_date:
-            start_date, end_date = end_date, start_date
+        start_date, end_date = _date_range_from_request(request, default_days=7)
         stale_hours = _stale_hours_from_request(request)
 
         context = build_country_report(country, start_date, end_date, stale_hours)
@@ -215,21 +225,19 @@ class SensorAdmin(admin.ModelAdmin):
     def pulse_view(self, request, pk):
         sensor = get_object_or_404(Sensor, pk=pk)
         stale_hours = _stale_hours_from_request(request)
-        try:
-            days = int(request.GET.get("days") or 30)
-        except ValueError:
-            days = 30
+        start_date, end_date = _date_range_from_request(request, default_days=30)
 
         pulsed_sensor = annotate_pulse(Sensor.objects.filter(pk=sensor.pk), stale_hours)[0]
-        upload_series, _ = merged_daily_series([sensor.pk], days)
-        events = sensor_timeline_events(sensor, days)
+        upload_series, _ = daily_series_for_range([sensor.pk], start_date, end_date)
+        events = sensor_timeline_events(sensor, start_date, end_date)
 
         context = {
             **self.admin_site.each_context(request),
             "title": f"{sensor.name} pulse",
             "sensor": pulsed_sensor,
             "stale_hours": stale_hours,
-            "days": days,
+            "start_date": start_date,
+            "end_date": end_date,
             "chart_svg": render_daily_series_svg(upload_series, label=f"Uploads per day — {sensor.name}"),
             "events": events,
         }

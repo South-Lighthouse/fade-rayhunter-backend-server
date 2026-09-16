@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.db.models import Count, Max
 from django.db.models.functions import TruncDate
@@ -56,9 +56,16 @@ def annotate_pulse(sensor_qs, stale_hours):
     return sensors
 
 
-def _daily_counts(queryset, timestamp_field, since):
+def _day_bounds(start_date, end_date):
+    range_start = timezone.make_aware(datetime.combine(start_date, time.min))
+    range_end = timezone.make_aware(datetime.combine(end_date, time.max))
+    return range_start, range_end
+
+
+def _daily_counts_range(queryset, timestamp_field, start_date, end_date):
+    range_start, range_end = _day_bounds(start_date, end_date)
     rows = (
-        queryset.filter(**{f"{timestamp_field}__gte": since})
+        queryset.filter(**{f"{timestamp_field}__range": (range_start, range_end)})
         .annotate(day=TruncDate(timestamp_field))
         .values("day")
         .annotate(count=Count("id"))
@@ -67,37 +74,47 @@ def _daily_counts(queryset, timestamp_field, since):
     return dict(rows)
 
 
-def merged_daily_series(sensor_ids, days):
+def daily_series_for_range(sensor_ids, start_date, end_date):
     """
     Aggregate upload + telemetry daily counts across one or more sensors for
-    the trailing `days` days (inclusive of today). Returns two aligned lists
-    of (date, count) tuples: (upload_series, telemetry_series).
+    an explicit inclusive [start_date, end_date] range. Returns two aligned
+    lists of (date, count) tuples: (upload_series, telemetry_series).
     """
-    since = timezone.now() - timedelta(days=days - 1)
-    since_date = since.date()
-
-    upload_counts = _daily_counts(
-        IngestedFile.objects.filter(sensor_id__in=sensor_ids), "uploaded_at", since
+    upload_counts = _daily_counts_range(
+        IngestedFile.objects.filter(sensor_id__in=sensor_ids), "uploaded_at", start_date, end_date
     )
-    telemetry_counts = _daily_counts(
-        TelemetryRecord.objects.filter(sensor_id__in=sensor_ids), "received_at", since
+    telemetry_counts = _daily_counts_range(
+        TelemetryRecord.objects.filter(sensor_id__in=sensor_ids), "received_at", start_date, end_date
     )
 
-    all_days = [since_date + timedelta(days=i) for i in range(days)]
+    num_days = (end_date - start_date).days + 1
+    all_days = [start_date + timedelta(days=i) for i in range(num_days)]
     upload_series = [(d, upload_counts.get(d, 0)) for d in all_days]
     telemetry_series = [(d, telemetry_counts.get(d, 0)) for d in all_days]
     return upload_series, telemetry_series
 
 
-def sensor_timeline_events(sensor, days, limit=200):
+def merged_daily_series(sensor_ids, days):
+    """
+    Aggregate upload + telemetry daily counts across one or more sensors for
+    the trailing `days` days (inclusive of today). Thin wrapper around
+    daily_series_for_range() for callers that just want a rolling window
+    (e.g. the dashboard's per-country trend strip).
+    """
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=days - 1)
+    return daily_series_for_range(sensor_ids, start_date, end_date)
+
+
+def sensor_timeline_events(sensor, start_date, end_date, limit=200):
     """
     Merged, most-recent-first timeline of this sensor's ingested files and
-    telemetry records over the trailing `days` days.
+    telemetry records over an explicit inclusive [start_date, end_date] range.
     """
-    since = timezone.now() - timedelta(days=days)
+    range_start, range_end = _day_bounds(start_date, end_date)
 
     events = []
-    for f in sensor.ingested_files.filter(uploaded_at__gte=since).order_by("-uploaded_at")[:limit]:
+    for f in sensor.ingested_files.filter(uploaded_at__range=(range_start, range_end)).order_by("-uploaded_at")[:limit]:
         events.append(
             {
                 "timestamp": f.uploaded_at,
@@ -106,7 +123,7 @@ def sensor_timeline_events(sensor, days, limit=200):
                 "extra": f"{filesizeformat(f.file_size or 0)} · {f.get_status_display()}",
             }
         )
-    for t in sensor.telemetry.filter(received_at__gte=since).order_by("-received_at")[:limit]:
+    for t in sensor.telemetry.filter(received_at__range=(range_start, range_end)).order_by("-received_at")[:limit]:
         events.append(
             {
                 "timestamp": t.received_at,

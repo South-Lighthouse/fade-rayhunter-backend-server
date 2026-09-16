@@ -29,14 +29,18 @@
       <h1>{{ sensor.name }}</h1>
       <span class="badge badge-{{ sensor.status }}">{{ sensor.status_label }}</span>
     </div>
-    <form method="get" style="display: flex; gap: 10px; align-items: flex-end;">
+    <form method="get" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+      <div>
+        <label for="id_start" style="display:block; font-size:0.72rem; color:#888;">Start date</label>
+        <input type="date" id="id_start" name="start" value="{{ start_date|date:'Y-m-d' }}">
+      </div>
+      <div>
+        <label for="id_end" style="display:block; font-size:0.72rem; color:#888;">End date</label>
+        <input type="date" id="id_end" name="end" value="{{ end_date|date:'Y-m-d' }}">
+      </div>
       <div>
         <label for="id_stale_hours" style="display:block; font-size:0.72rem; color:#888;">Stale after (hours)</label>
         <input type="number" id="id_stale_hours" name="stale_hours" min="1" value="{{ stale_hours }}" style="width: 90px;">
-      </div>
-      <div>
-        <label for="id_days" style="display:block; font-size:0.72rem; color:#888;">Timeline window (days)</label>
-        <input type="number" id="id_days" name="days" min="1" value="{{ days }}" style="width: 90px;">
       </div>
       <button type="submit" class="print-btn">Apply</button>
     </form>
@@ -62,7 +66,7 @@
   {% endif %}
 
   <div class="card">
-    <p class="card-title">Daily activity (last {{ days }} days)</p>
+    <p class="card-title">Daily activity ({{ start_date }} to {{ end_date }})</p>
     {{ chart_svg|safe }}
   </div>
 
