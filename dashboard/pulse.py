@@ -106,35 +106,41 @@ def merged_daily_series(sensor_ids, days):
     return daily_series_for_range(sensor_ids, start_date, end_date)
 
 
-def sensor_timeline_events(sensor, start_date, end_date, limit=200):
+def sensor_timeline_events(sensor, start_date, end_date, telemetry_limit=200):
     """
-    Merged, most-recent-first timeline of this sensor's ingested files and
-    telemetry records over an explicit inclusive [start_date, end_date] range.
+    Returns (upload_events, telemetry_events) for this sensor over an
+    explicit inclusive [start_date, end_date] range, each most-recent-first.
+
+    Uploads are never capped — auditing every ingested file in the period is
+    the primary use case. Telemetry is capped at `telemetry_limit` since it's
+    typically far higher volume and isn't what's being audited here; capping
+    it independently (rather than after merging with uploads) means a burst
+    of telemetry can never crowd uploads out of what's shown.
     """
     range_start, range_end = _day_bounds(start_date, end_date)
 
-    events = []
-    for f in sensor.ingested_files.filter(uploaded_at__range=(range_start, range_end)).order_by("-uploaded_at")[:limit]:
-        events.append(
-            {
-                "timestamp": f.uploaded_at,
-                "kind": "upload",
-                "detail": f.filename,
-                "extra": f"{filesizeformat(f.file_size or 0)} · {f.get_status_display()}",
-            }
-        )
-    for t in sensor.telemetry.filter(received_at__range=(range_start, range_end)).order_by("-received_at")[:limit]:
-        events.append(
-            {
-                "timestamp": t.received_at,
-                "kind": "telemetry",
-                "detail": t.event_type or "(no type)",
-                "extra": t.message,
-            }
-        )
+    upload_events = [
+        {
+            "timestamp": f.uploaded_at,
+            "kind": "upload",
+            "detail": f.filename,
+            "extra": f"{filesizeformat(f.file_size or 0)} · {f.get_status_display()}",
+        }
+        for f in sensor.ingested_files.filter(uploaded_at__range=(range_start, range_end)).order_by("-uploaded_at")
+    ]
 
-    events.sort(key=lambda e: e["timestamp"], reverse=True)
-    return events[:limit]
+    telemetry_events = [
+        {
+            "timestamp": t.received_at,
+            "kind": "telemetry",
+            "detail": t.event_type or "(no type)",
+            "extra": t.message,
+        }
+        for t in sensor.telemetry.filter(received_at__range=(range_start, range_end))
+        .order_by("-received_at")[:telemetry_limit]
+    ]
+
+    return upload_events, telemetry_events
 
 
 def dashboard_groups(stale_hours, trend_days=14):

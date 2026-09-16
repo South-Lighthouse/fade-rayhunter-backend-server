@@ -229,7 +229,10 @@ class SensorAdmin(admin.ModelAdmin):
 
         pulsed_sensor = annotate_pulse(Sensor.objects.filter(pk=sensor.pk), stale_hours)[0]
         upload_series, _ = daily_series_for_range([sensor.pk], start_date, end_date)
-        events = sensor_timeline_events(sensor, start_date, end_date)
+        telemetry_limit = 200
+        upload_events, telemetry_events = sensor_timeline_events(
+            sensor, start_date, end_date, telemetry_limit=telemetry_limit
+        )
 
         context = {
             **self.admin_site.each_context(request),
@@ -239,6 +242,8 @@ class SensorAdmin(admin.ModelAdmin):
             "start_date": start_date,
             "end_date": end_date,
             "chart_svg": render_daily_series_svg(upload_series, label=f"Uploads per day — {sensor.name}"),
-            "events": events,
+            "upload_events": upload_events,
+            "telemetry_events": telemetry_events,
+            "telemetry_capped": len(telemetry_events) >= telemetry_limit,
         }
         return render(request, "dashboard/sensor_pulse.html", context)

@@ -6,7 +6,7 @@
 {% block content %}
 {% include "dashboard/_report_style.html" %}
 <style>
-  .pulse-wrap { max-width: 900px; margin: 0 auto; }
+  .pulse-wrap { max-width: 1100px; margin: 0 auto; }
   .pulse-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
   .pulse-header h1 { margin: 0 0 4px; font-size: 1.4rem; }
   .alert-banner { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
@@ -16,8 +16,16 @@
   .timeline-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
   .timeline-table th, .timeline-table td { padding: 6px 10px; border-bottom: 1px solid #eee; text-align: left; }
   .timeline-table th { color: #888; font-size: 0.72rem; text-transform: uppercase; }
+  .timeline-scroll { max-height: 500px; overflow-y: auto; }
   .kind-upload { color: #2a6ea6; }
   .kind-telemetry { color: #7a5c2e; }
+  .timeline-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) {
+    .timeline-columns { grid-template-columns: 1fr; }
+  }
+  @media print {
+    .timeline-scroll { max-height: none; overflow: visible; }
+  }
 </style>
 
 <div class="pulse-wrap">
@@ -70,24 +78,53 @@
     {{ chart_svg|safe }}
   </div>
 
-  <div class="card">
-    <p class="card-title">Timeline</p>
-    <table class="timeline-table">
-      <thead>
-        <tr><th>When</th><th>Type</th><th>Detail</th></tr>
-      </thead>
-      <tbody>
-        {% for event in events %}
-        <tr>
-          <td>{{ event.timestamp }}</td>
-          <td class="kind-{{ event.kind }}">{{ event.kind }}</td>
-          <td>{{ event.detail }}{% if event.extra %} &mdash; <span style="color:#888;">{{ event.extra }}</span>{% endif %}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="3" class="empty">No activity in this window.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="timeline-columns">
+    <div class="card">
+      <p class="card-title">Ingested files ({{ upload_events|length }})</p>
+      <div class="timeline-scroll">
+        <table class="timeline-table">
+          <thead>
+            <tr><th>When</th><th>File</th></tr>
+          </thead>
+          <tbody>
+            {% for event in upload_events %}
+            <tr>
+              <td style="white-space: nowrap;">{{ event.timestamp }}</td>
+              <td class="kind-upload">{{ event.detail }}{% if event.extra %}<br><span style="color:#888;">{{ event.extra }}</span>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="empty">No files ingested in this window.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">
+        Telemetry ({{ telemetry_events|length }}{% if telemetry_capped %}+{% endif %})
+      </p>
+      <div class="timeline-scroll">
+        <table class="timeline-table">
+          <thead>
+            <tr><th>When</th><th>Event</th></tr>
+          </thead>
+          <tbody>
+            {% for event in telemetry_events %}
+            <tr>
+              <td style="white-space: nowrap;">{{ event.timestamp }}</td>
+              <td class="kind-telemetry">{{ event.detail }}{% if event.extra %}<br><span style="color:#888;">{{ event.extra }}</span>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="empty">No telemetry in this window.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if telemetry_capped %}
+      <p style="font-size: 0.75rem; color: #aaa; margin: 8px 0 0;">Showing the most recent {{ telemetry_events|length }} — narrow the date range to see earlier telemetry.</p>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}
