@@ -80,6 +80,13 @@ services:
       # certbot volumes (only used after init-letsencrypt.sh has been run)
       - ./data/certbot/conf:/etc/letsencrypt:ro
       - ./data/certbot/www:/var/www/certbot:ro
+    # certbot's renewal loop never tells nginx to reload, so a successful
+    # renewal previously just sat on disk unused until nginx happened to
+    # restart for an unrelated reason -- reloading daily regardless closes
+    # that gap. A reload is graceful (in-flight connections finish normally).
+    command: >
+      sh -c '(while :; do sleep 24h; nginx -s reload; done) &
+      exec nginx -g "daemon off;"'
 
   # Runs in the background and renews the certificate every 12 hours.
   # Has no effect until init-letsencrypt.sh has obtained the first certificate.
