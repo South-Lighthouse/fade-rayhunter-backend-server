@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "ingestion",
     "telemetry",
     "dashboard",
+    "captures",
 ]
 
 MIDDLEWARE = [

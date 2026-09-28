@@ -5,6 +5,7 @@ __pycache__/
 *.sqlite3
 .DS_Store
 data/
+data_workbench/
 nginx/nginx.conf
 /static/
 /media/
@@ -12,3 +13,4 @@ nginx/nginx.conf
 .pytest_cache/
 htmlcov/
 .coverage
+docker-compose.override.yml
