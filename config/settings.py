@@ -120,10 +120,20 @@ FILE_SCAN_INTERVAL = config("FILE_SCAN_INTERVAL", default=30, cast=int)
 # "stale" on the monitoring dashboard. Adjustable per-request via ?stale_hours=.
 SENSOR_STALE_HOURS = config("SENSOR_STALE_HOURS", default=96, cast=int)
 
+# How often the general-log/GPS parsing pipeline looks for newly-uploaded
+# monitoring sessions to process, and how many sessions it'll take per
+# sensor per run (bounds a single task's runtime on a large backlog).
+SESSION_PROCESSING_INTERVAL = config("SESSION_PROCESSING_INTERVAL", default=300, cast=int)
+SESSION_PROCESSING_BATCH_SIZE = config("SESSION_PROCESSING_BATCH_SIZE", default=50, cast=int)
+
 CELERY_BEAT_SCHEDULE = {
     "scan-uploads": {
         "task": "ingestion.tasks.scan_upload_directory",
         "schedule": FILE_SCAN_INTERVAL,
+    },
+    "process-monitoring-sessions": {
+        "task": "captures.tasks.process_pending_monitoring_sessions",
+        "schedule": SESSION_PROCESSING_INTERVAL,
     },
 }
 

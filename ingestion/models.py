@@ -4,12 +4,14 @@ from django.db import models
 class IngestedFile(models.Model):
     STATUS_PENDING = "pending"
     STATUS_PROCESSING = "processing"
+    STATUS_AWAITING_FURTHER_PROCESSING = "awaiting_further_processing"
     STATUS_DONE = "done"
     STATUS_ERROR = "error"
 
     STATUS_CHOICES = [
         (STATUS_PENDING, "Pending"),
         (STATUS_PROCESSING, "Processing"),
+        (STATUS_AWAITING_FURTHER_PROCESSING, "Awaiting further processing"),
         (STATUS_DONE, "Done"),
         (STATUS_ERROR, "Error"),
     ]
@@ -20,7 +22,7 @@ class IngestedFile(models.Model):
     filename = models.CharField(max_length=255)
     relative_path = models.CharField(max_length=512)
     file_size = models.BigIntegerField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default=STATUS_PENDING)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
     error_message = models.TextField(blank=True)

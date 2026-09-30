@@ -200,10 +200,19 @@ def process_session(sensor, session_id):
     session.processed_at = dj_timezone.now()
     session.save(update_fields=["processed_at"])
 
-    for ingested_file in (session.general_log_file, session.gps_log_file, session.qmdl_file):
+    # The general log is fully consumed here -- nothing else will ever need
+    # to read it again. The GPS log and QMDL are also inputs to the future
+    # radio/PCAP pipeline, so they're not "done" yet, just done with this
+    # stage -- marking them done prematurely could see them archived out of
+    # the webdav-reachable directory before that pipeline ever gets to them.
+    if session.general_log_file is not None:
+        session.general_log_file.status = IngestedFile.STATUS_DONE
+        session.general_log_file.processed_at = dj_timezone.now()
+        session.general_log_file.save(update_fields=["status", "processed_at"])
+
+    for ingested_file in (session.gps_log_file, session.qmdl_file):
         if ingested_file is not None:
-            ingested_file.status = IngestedFile.STATUS_DONE
-            ingested_file.processed_at = dj_timezone.now()
-            ingested_file.save(update_fields=["status", "processed_at"])
+            ingested_file.status = IngestedFile.STATUS_AWAITING_FURTHER_PROCESSING
+            ingested_file.save(update_fields=["status"])
 
     return session
