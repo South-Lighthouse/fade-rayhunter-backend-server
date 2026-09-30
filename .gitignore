@@ -14,3 +14,8 @@ nginx/nginx.conf
 htmlcov/
 .coverage
 docker-compose.override.yml
+
+# Rust build artifacts (tools/qmdl2pcap) -- Cargo.lock is intentionally kept
+# tracked, since it pins the exact rayhunter/telcom-parser/pycrate-rs git
+# commits this depends on.
+target/
