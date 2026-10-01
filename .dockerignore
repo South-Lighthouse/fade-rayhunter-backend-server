@@ -1,0 +1,22 @@
+.git
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+htmlcov
+.coverage
+
+# Rust build artifacts for tools/qmdl2pcap -- the builder stage runs
+# `cargo build` fresh in-image; a local target/ dir here can be 1-5GB and
+# must never end up in the build context or an image layer.
+tools/qmdl2pcap/target
+
+# Local/server-only data -- never belongs in an image
+data/
+data_workbench/
+.env
+*.sqlite3
+*.log
+
+# Local dev convenience files
+docker-compose.override.yml

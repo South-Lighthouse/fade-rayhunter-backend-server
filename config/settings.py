@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "telemetry",
     "dashboard",
     "captures",
+    "radio",
 ]
 
 MIDDLEWARE = [
@@ -101,6 +102,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # File upload storage
 UPLOAD_ROOT = config("UPLOAD_ROOT", default=os.path.join(BASE_DIR, "data", "uploads"))
 
+# Generated radio-capture PCAPs. Deliberately separate from UPLOAD_ROOT: files
+# written here must NOT be picked up by ingestion.tasks.scan_upload_directory.
+RADIO_PCAP_ROOT = config("RADIO_PCAP_ROOT", default=os.path.join(BASE_DIR, "data", "radio_pcaps"))
+
+# Path (or bare name, if on $PATH) to the qmdl2pcap binary built from
+# tools/qmdl2pcap. The Docker image installs it to /usr/local/bin.
+QMDL2PCAP_BIN = config("QMDL2PCAP_BIN", default="qmdl2pcap")
+
 # Base URL shown in sensor QR codes — must end without a slash.
 # Set this to the public-facing URL of this server (e.g. https://dashboard.fadeproject.org).
 TELEMETRY_BASE_URL = config("TELEMETRY_BASE_URL", default="http://localhost:8000")
@@ -125,6 +134,12 @@ SENSOR_STALE_HOURS = config("SENSOR_STALE_HOURS", default=96, cast=int)
 # sensor per run (bounds a single task's runtime on a large backlog).
 SESSION_PROCESSING_INTERVAL = config("SESSION_PROCESSING_INTERVAL", default=300, cast=int)
 SESSION_PROCESSING_BATCH_SIZE = config("SESSION_PROCESSING_BATCH_SIZE", default=50, cast=int)
+
+# How often the QMDL->PCAP->tshark radio pipeline looks for sessions left at
+# IngestedFile.STATUS_AWAITING_FURTHER_PROCESSING by captures, and how many
+# sessions it'll take per run.
+RADIO_PROCESSING_INTERVAL = config("RADIO_PROCESSING_INTERVAL", default=600, cast=int)
+RADIO_PROCESSING_BATCH_SIZE = config("RADIO_PROCESSING_BATCH_SIZE", default=20, cast=int)
 
 CELERY_BEAT_SCHEDULE = {
     "scan-uploads": {

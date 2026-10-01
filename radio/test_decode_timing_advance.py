@@ -1,6 +1,6 @@
 import unittest
 
-from decode_timing_advance import (
+from radio.decode_timing_advance import (
     PAYLOAD_TAG,
     RNTI_TYPE_RA,
     TA_SENTINEL,

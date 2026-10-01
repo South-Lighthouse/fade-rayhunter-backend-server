@@ -61,6 +61,7 @@ services:
         condition: service_started
     volumes:
       - uploads:/data/uploads
+      - radio_pcaps:/data/radio_pcaps
     command: celery -A config.celery worker -B -l info
 
   nginx:
@@ -103,4 +104,5 @@ volumes:
   db_data:
   redis_data:
   uploads:
+  radio_pcaps:
   static:
