@@ -45,7 +45,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /data/uploads /data/radio_pcaps /app/static
+RUN mkdir -p /data/uploads /data/radio_pcaps /data/archive /app/static
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

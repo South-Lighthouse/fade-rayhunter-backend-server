@@ -41,6 +41,8 @@ services:
         condition: service_started
     volumes:
       - uploads:/data/uploads
+      - radio_pcaps:/data/radio_pcaps
+      - ./data/archive:/data/archive
       - static:/app/static
     expose:
       - "8000"
@@ -62,6 +64,7 @@ services:
     volumes:
       - uploads:/data/uploads
       - radio_pcaps:/data/radio_pcaps
+      - ./data/archive:/data/archive
     command: celery -A config.celery worker -B -l info
 
   nginx:

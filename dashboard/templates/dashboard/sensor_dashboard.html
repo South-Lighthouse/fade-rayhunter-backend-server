@@ -24,6 +24,42 @@
 </style>
 
 <div class="dash-wrap">
+  <div class="card">
+    <p class="card-title">Disk &amp; archive status</p>
+    <div class="summary-grid">
+      <div class="summary-card{% if disk.uploads_disk and disk.uploads_disk.free < 5000000000 %} attention{% endif %}">
+        <span class="summary-value">{% if disk.uploads_disk %}{{ disk.uploads_disk.free|filesizeformat }}{% else %}—{% endif %}</span>
+        <span class="summary-label">Free — uploads disk</span>
+      </div>
+      <div class="summary-card{% if disk.pcap_disk and disk.pcap_disk.free < 5000000000 %} attention{% endif %}">
+        <span class="summary-value">{% if disk.pcap_disk %}{{ disk.pcap_disk.free|filesizeformat }}{% else %}—{% endif %}</span>
+        <span class="summary-label">Free — radio PCAP disk</span>
+      </div>
+      <div class="summary-card{% if disk.archive_disk and disk.archive_disk.free < 5000000000 %} attention{% endif %}">
+        <span class="summary-value">{% if disk.archive_disk %}{{ disk.archive_disk.free|filesizeformat }}{% else %}—{% endif %}</span>
+        <span class="summary-label">Free — archive disk</span>
+      </div>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <span class="summary-value">{{ disk.ingested_ready_count }}</span>
+        <span class="summary-label">Uploads ready to archive ({{ disk.ingested_ready_bytes|filesizeformat }})</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-value">{{ disk.radio_ready_count }}</span>
+        <span class="summary-label">PCAPs ready to archive ({{ disk.radio_ready_bytes|filesizeformat }})</span>
+      </div>
+      <div class="summary-card{% if disk.ingested_waiting_count %} attention{% endif %}">
+        <span class="summary-value">{{ disk.ingested_waiting_count }}</span>
+        <span class="summary-label">Uploads waiting for pickup ({{ disk.ingested_waiting_bytes|filesizeformat }})</span>
+      </div>
+      <div class="summary-card{% if disk.radio_waiting_count %} attention{% endif %}">
+        <span class="summary-value">{{ disk.radio_waiting_count }}</span>
+        <span class="summary-label">PCAPs waiting for pickup ({{ disk.radio_waiting_bytes|filesizeformat }})</span>
+      </div>
+    </div>
+  </div>
+
   <form method="get" style="margin-bottom: 24px; display: flex; gap: 10px; align-items: flex-end;">
     <div>
       <label for="id_stale_hours" style="display:block; font-size:0.75rem; color:#888;">Alert if silent for more than (hours)</label>

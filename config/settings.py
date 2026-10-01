@@ -110,6 +110,13 @@ RADIO_PCAP_ROOT = config("RADIO_PCAP_ROOT", default=os.path.join(BASE_DIR, "data
 # tools/qmdl2pcap. The Docker image installs it to /usr/local/bin.
 QMDL2PCAP_BIN = config("QMDL2PCAP_BIN", default="qmdl2pcap")
 
+# Staging area for files an admin has confirmed are safe to pull off the
+# server (see ingestion/archiving.py). Deliberately a separate directory
+# from UPLOAD_ROOT/RADIO_PCAP_ROOT -- those stay Docker-managed and
+# untouched; only this one is meant to be a host bind mount so it's
+# directly scp/rsync-reachable without going through Docker.
+ARCHIVE_ROOT = config("ARCHIVE_ROOT", default=os.path.join(BASE_DIR, "data", "archive"))
+
 # Base URL shown in sensor QR codes — must end without a slash.
 # Set this to the public-facing URL of this server (e.g. https://dashboard.fadeproject.org).
 TELEMETRY_BASE_URL = config("TELEMETRY_BASE_URL", default="http://localhost:8000")

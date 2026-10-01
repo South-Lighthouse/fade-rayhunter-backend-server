@@ -245,9 +245,10 @@ def process_capture(session):
 
     capture.status = RadioCapture.STATUS_DONE
     capture.pcap_path = str(pcap_path.relative_to(settings.RADIO_PCAP_ROOT))
+    capture.pcap_size = pcap_path.stat().st_size
     capture.packet_count = packet_count
     capture.processed_at = dj_timezone.now()
-    capture.save(update_fields=["status", "pcap_path", "packet_count", "processed_at"])
+    capture.save(update_fields=["status", "pcap_path", "pcap_size", "packet_count", "processed_at"])
 
     for ingested_file in (qmdl_file, session.gps_log_file):
         if ingested_file is not None:

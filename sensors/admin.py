@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 
+from dashboard.disk_usage import archive_context
 from dashboard.pulse import annotate_pulse, daily_series_for_range, dashboard_groups, sensor_timeline_events
 from dashboard.reports import build_country_report
 from dashboard.svg_charts import render_daily_series_svg
@@ -219,6 +220,7 @@ class SensorAdmin(admin.ModelAdmin):
             "title": "Sensor dashboard",
             "groups": groups,
             "stale_hours": stale_hours,
+            "disk": archive_context(),
         }
         return render(request, "dashboard/sensor_dashboard.html", context)
 

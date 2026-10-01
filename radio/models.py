@@ -17,8 +17,12 @@ class RadioCapture(models.Model):
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     pcap_path = models.CharField(max_length=500, blank=True)
+    pcap_size = models.BigIntegerField(null=True, blank=True)
     packet_count = models.PositiveIntegerField(null=True, blank=True)
     error_message = models.TextField(blank=True)
+
+    archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    reclaimed_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)

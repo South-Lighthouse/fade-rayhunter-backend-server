@@ -27,6 +27,9 @@ class IngestedFile(models.Model):
     processed_at = models.DateTimeField(null=True, blank=True)
     error_message = models.TextField(blank=True)
 
+    archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    reclaimed_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-uploaded_at"]
         unique_together = ["sensor", "relative_path"]
