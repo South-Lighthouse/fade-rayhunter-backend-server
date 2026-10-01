@@ -26,6 +26,20 @@ fn record_timestamp(r: &GpsRecord) -> i64 {
     r.latest_packet_timestamp.unwrap_or(i64::MIN)
 }
 
+// Rayhunter's own daemon/src/pcap.rs (South-Lighthouse/rayhunter@lac-round-two)
+// reuses record_timestamp()'s i64::MIN sort sentinel to populate the emitted
+// GpsPoint.unix_ts too -- confirmed directly against a real session: any
+// packet near the start of a capture (before the first GPS fix has been
+// correlated with a modem packet, so latest_packet_timestamp is still None)
+// gets a GPS comment with unix_ts = -9223372036854775808, which crashes any
+// downstream consumer that treats it as a real Unix timestamp. Keeping the
+// sentinel for sorting/matching (same algorithm as upstream) but falling
+// back to system_time -- always present, always a sane wall-clock value --
+// rather than the sentinel for the value actually written out.
+fn output_timestamp(r: &GpsRecord) -> i64 {
+    r.latest_packet_timestamp.unwrap_or(r.system_time)
+}
+
 /// Reads GPS records from a Rayhunter `-gps.ndjson` file, sorted by
 /// latest_packet_timestamp. Malformed lines are logged and skipped rather
 /// than failing the whole file, matching the daemon's own tolerance for a
@@ -75,7 +89,7 @@ pub fn find_nearest_gps(records: &[GpsRecord], packet_timestamp: i64) -> Option<
     };
 
     Some(GpsPoint {
-        unix_ts: record_timestamp(record),
+        unix_ts: output_timestamp(record),
         latitude: record.lat,
         longitude: record.lon,
     })

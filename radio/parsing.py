@@ -86,9 +86,17 @@ def _parse_gps_comment(pkt_comment_layer):
         except (TypeError, json.JSONDecodeError):
             continue
         unix_ts = gps.get("unix_ts")
-        gps_timestamp = (
-            datetime.fromtimestamp(unix_ts, tz=timezone.utc) if unix_ts is not None else None
-        )
+        gps_timestamp = None
+        if unix_ts is not None:
+            try:
+                gps_timestamp = datetime.fromtimestamp(unix_ts, tz=timezone.utc)
+            except (OSError, OverflowError, ValueError):
+                # qmdl2pcap (and upstream Rayhunter, which it mirrors) can
+                # emit a sentinel unix_ts for a GPS fix that predates any
+                # packet correlation -- fixed at the source, but tolerate it
+                # here too for already-generated pcaps and any other garbage
+                # that slips through. lat/lon are still real, so keep those.
+                gps_timestamp = None
         return gps_timestamp, gps.get("lat"), gps.get("lon")
     return None, None, None
 
@@ -219,8 +227,16 @@ def process_capture(session):
     try:
         _run_qmdl2pcap(qmdl_path, gps_path, pcap_path)
         packet_count = _parse_pcap(capture, session.sensor, pcap_path)
-    except subprocess.CalledProcessError as exc:
-        error_output = exc.stderr or exc.stdout or str(exc)
+    except Exception as exc:
+        # Broad on purpose: this is the batch-isolation boundary (see
+        # docstring above) -- a subprocess failure, a parsing bug tripped by
+        # one session's unusual data, or anything else must not take down
+        # the whole run. subprocess.CalledProcessError gets its stderr/stdout
+        # surfaced; anything else just gets str(exc).
+        if isinstance(exc, subprocess.CalledProcessError):
+            error_output = exc.stderr or exc.stdout or str(exc)
+        else:
+            error_output = str(exc)
         capture.status = RadioCapture.STATUS_ERROR
         capture.error_message = error_output[:4000]
         capture.processed_at = dj_timezone.now()
