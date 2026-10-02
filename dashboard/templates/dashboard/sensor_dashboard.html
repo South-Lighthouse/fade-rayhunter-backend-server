@@ -60,6 +60,42 @@
     </div>
   </div>
 
+  <div class="card">
+    <p class="card-title">Radio packets processed</p>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <span class="summary-value">{{ radio.radio_total_packets }}</span>
+        <span class="summary-label">Total packets</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-value">{{ radio.radio_capture_count }}</span>
+        <span class="summary-label">Sessions processed</span>
+      </div>
+    </div>
+    {% if radio.radio_by_country %}
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Country</th>
+          <th>Sessions</th>
+          <th>Packets</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in radio.radio_by_country %}
+        <tr>
+          <td>{{ row.country_name }}</td>
+          <td>{{ row.capture_count }}</td>
+          <td>{{ row.total_packets|default:0 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="chart-empty">No radio captures processed yet.</p>
+    {% endif %}
+  </div>
+
   <form method="get" style="margin-bottom: 24px; display: flex; gap: 10px; align-items: flex-end;">
     <div>
       <label for="id_stale_hours" style="display:block; font-size:0.75rem; color:#888;">Alert if silent for more than (hours)</label>
