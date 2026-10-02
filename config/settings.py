@@ -157,6 +157,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "captures.tasks.process_pending_monitoring_sessions",
         "schedule": SESSION_PROCESSING_INTERVAL,
     },
+    "process-radio-captures": {
+        "task": "radio.tasks.process_pending_radio_captures",
+        "schedule": RADIO_PROCESSING_INTERVAL,
+    },
 }
 
 # Django REST Framework
