@@ -1,5 +1,4 @@
 import json
-import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -12,7 +11,7 @@ from ingestion.models import IngestedFile
 
 from .decode_timing_advance import decode_timing_advance_hex
 from .ek_flatten import flatten_packet, is_noise, short
-from .models import RadioCapture, RadioPacket
+from .models import CoveragePoint, RadioCapture, RadioPacket
 from .packet_type import GSMTAP_TYPE_MAC_RACH_RESPONSE, derive_packet_type
 
 BULK_CREATE_BATCH_SIZE = 150
@@ -24,9 +23,6 @@ with _LOOKUP_PATH.open() as _fh:
 _RAW_PATH_TO_DJANGO_NAME = {v: k for k, v in RAW_PATH_LOOKUP.items()}
 _PROMOTED_RAW_PATHS = set(RAW_PATH_LOOKUP.values())
 _FIELD_BY_DJANGO_NAME = {name: RadioPacket._meta.get_field(name) for name in RAW_PATH_LOOKUP}
-
-_FRACTIONAL_SECONDS_RE = re.compile(r"\.(\d{6})\d+")
-
 
 def discover_pending_captures(sensor=None, limit=None):
     """
@@ -51,15 +47,21 @@ def discover_pending_captures(sensor=None, limit=None):
 
 
 def _parse_frame_time(value):
+    """
+    `frame_frame_time_epoch` is a Unix timestamp (seconds, with fractional
+    seconds), e.g. "1784254857.381000000" -- NOT ISO 8601 despite looking
+    like it might be (that's `frame_frame_time` instead, a sibling field
+    this code never used). Confirmed directly against real tshark -T ek
+    output; a previous version of this function assumed ISO 8601 and
+    silently returned None for every single packet as a result -- caught
+    only once something (the coverage-point feature) actually needed
+    qmdl_timestamp to be non-null.
+    """
     if not value:
         return None
-    value = value.replace("Z", "+00:00")
-    # tshark emits 9-digit (nanosecond) fractional seconds; datetime.fromisoformat
-    # only reliably accepts up to 6 (microsecond) -- truncate the rest.
-    value = _FRACTIONAL_SECONDS_RE.sub(r".\1", value)
     try:
-        return datetime.fromisoformat(value)
-    except ValueError:
+        return datetime.fromtimestamp(float(value), tz=timezone.utc)
+    except (TypeError, ValueError, OSError, OverflowError):
         return None
 
 
@@ -169,6 +171,7 @@ def _parse_pcap(capture, sensor, pcap_path):
     )
     batch = []
     count = 0
+    coverage_cells = set()
     for line in proc.stdout.splitlines():
         line = line.strip()
         if not line or line.startswith('{"index"'):
@@ -177,13 +180,27 @@ def _parse_pcap(capture, sensor, pcap_path):
             pkt = json.loads(line)
         except json.JSONDecodeError:
             continue
-        batch.append(_build_packet(capture, sensor, pkt.get("layers", {})))
+        packet = _build_packet(capture, sensor, pkt.get("layers", {}))
+        batch.append(packet)
         count += 1
+        reading_time = packet.qmdl_timestamp or packet.gps_timestamp
+        if packet.latitude is not None and packet.longitude is not None and reading_time is not None:
+            coverage_cells.add((reading_time.date(), round(packet.latitude, 3), round(packet.longitude, 3)))
         if len(batch) >= BULK_CREATE_BATCH_SIZE:
             RadioPacket.objects.bulk_create(batch)
             batch = []
     if batch:
         RadioPacket.objects.bulk_create(batch)
+
+    if coverage_cells:
+        CoveragePoint.objects.bulk_create(
+            [
+                CoveragePoint(sensor=sensor, date=d, latitude=lat, longitude=lon)
+                for d, lat, lon in coverage_cells
+            ],
+            ignore_conflicts=True,
+        )
+
     return count
 
 

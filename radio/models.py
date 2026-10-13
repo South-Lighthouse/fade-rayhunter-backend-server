@@ -216,3 +216,33 @@ class RadioPacket(models.Model):
 
     def __str__(self):
         return f"{self.sensor.slug}/{self.capture_id}#{self.pk}"
+
+
+class CoveragePoint(models.Model):
+    """
+    One row per (sensor, day, ~111m grid cell) with at least one GPS-bearing
+    RadioPacket reading -- deliberately NOT one row per packet. This is what
+    keeps geographic-coverage reporting cheap forever: the table is bounded
+    by distinct places visited per day, never by packet volume, so report
+    pages can query it directly without ever touching RadioPacket (tens of
+    millions of rows and climbing).
+
+    Populated incrementally by radio.parsing._parse_pcap as new captures are
+    processed, and backfilled once for pre-existing data via
+    radio/management/commands/backfill_coverage_points.py.
+    """
+
+    sensor = models.ForeignKey("sensors.Sensor", on_delete=models.CASCADE, related_name="coverage_points")
+    date = models.DateField(db_index=True)
+    # DecimalField, not FloatField: deduplication relies on exact equality
+    # (unique_together + bulk_create(ignore_conflicts=True)), and rounded
+    # floats aren't guaranteed to compare equal bit-for-bit.
+    latitude = models.DecimalField(max_digits=6, decimal_places=3)
+    longitude = models.DecimalField(max_digits=6, decimal_places=3)
+
+    class Meta:
+        unique_together = ["sensor", "date", "latitude", "longitude"]
+        indexes = [models.Index(fields=["sensor", "date"])]
+
+    def __str__(self):
+        return f"{self.sensor.slug}/{self.date}/{self.latitude},{self.longitude}"

@@ -32,6 +32,10 @@
     {{ chart_svg|safe }}
   </div>
 
+  {% with map_id="country-coverage-map" %}
+    {% include "dashboard/_coverage_map.html" %}
+  {% endwith %}
+
   <table class="report-table">
     <thead>
       <tr>

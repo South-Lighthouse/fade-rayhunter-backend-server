@@ -8,6 +8,7 @@ from django.utils import timezone
 from ingestion.models import IngestedFile
 from telemetry.models import TelemetryRecord
 
+from .coverage import coverage_points_for
 from .pulse import STATUS_LABELS, annotate_pulse
 
 
@@ -56,9 +57,11 @@ def build_country_report(country, start_date, end_date, stale_hours):
         )
 
     daily_series = sorted(daily_uploads.items())
+    coverage_points = coverage_points_for([s.id for s in pulses], start_date, end_date)
 
     return {
         "country": country,
+        "coverage_points": coverage_points,
         "start_date": start_date,
         "end_date": end_date,
         "stale_hours": stale_hours,

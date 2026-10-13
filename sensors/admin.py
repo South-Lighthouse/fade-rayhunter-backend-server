@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 
+from dashboard.coverage import coverage_points_for
 from dashboard.disk_usage import archive_context
 from dashboard.pulse import annotate_pulse, daily_series_for_range, dashboard_groups, sensor_timeline_events
 from dashboard.radio_stats import radio_stats_context
@@ -249,5 +250,6 @@ class SensorAdmin(admin.ModelAdmin):
             "upload_events": upload_events,
             "telemetry_events": telemetry_events,
             "telemetry_capped": len(telemetry_events) >= telemetry_limit,
+            "coverage_points": coverage_points_for([sensor.pk], start_date, end_date),
         }
         return render(request, "dashboard/sensor_pulse.html", context)

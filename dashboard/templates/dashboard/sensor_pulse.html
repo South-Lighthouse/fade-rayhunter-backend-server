@@ -78,6 +78,10 @@
     {{ chart_svg|safe }}
   </div>
 
+  {% with map_id="sensor-coverage-map" %}
+    {% include "dashboard/_coverage_map.html" %}
+  {% endwith %}
+
   <div class="timeline-columns">
     <div class="card">
       <p class="card-title">Ingested files ({{ upload_events|length }})</p>
