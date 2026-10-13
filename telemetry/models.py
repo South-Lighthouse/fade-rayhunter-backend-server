@@ -17,6 +17,7 @@ class TelemetryRecord(models.Model):
 
     class Meta:
         ordering = ["-received_at"]
+        indexes = [models.Index(fields=["sensor", "received_at"])]
 
     def __str__(self):
         return f"{self.sensor.slug} / {self.event_type} @ {self.received_at}"

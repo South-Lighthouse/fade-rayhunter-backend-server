@@ -33,6 +33,7 @@ class IngestedFile(models.Model):
     class Meta:
         ordering = ["-uploaded_at"]
         unique_together = ["sensor", "relative_path"]
+        indexes = [models.Index(fields=["sensor", "uploaded_at"])]
 
     def __str__(self):
         return f"{self.sensor.slug}/{self.filename}"
