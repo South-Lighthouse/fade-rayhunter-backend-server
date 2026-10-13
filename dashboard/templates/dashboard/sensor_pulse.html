@@ -82,6 +82,28 @@
     {% include "dashboard/_coverage_map.html" %}
   {% endwith %}
 
+  <div class="card">
+    <p class="card-title">Rayhunter alerts ({{ alerts|length }})</p>
+    <div class="timeline-scroll">
+      <table class="timeline-table">
+        <thead>
+          <tr><th>When</th><th>Severity</th><th>Detail</th></tr>
+        </thead>
+        <tbody>
+          {% for alert in alerts %}
+          <tr>
+            <td style="white-space: nowrap;">{{ alert.qmdl_timestamp|default:"—" }}</td>
+            <td><span class="badge badge-severity-{{ alert.severity|lower }}">{{ alert.severity }}</span></td>
+            <td>{{ alert.log_entry }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="empty">No alerts in this window.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="timeline-columns">
     <div class="card">
       <p class="card-title">Ingested files ({{ upload_events|length }})</p>

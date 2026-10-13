@@ -36,6 +36,32 @@
     {% include "dashboard/_coverage_map.html" %}
   {% endwith %}
 
+  <div class="card">
+    <p class="card-title">Rayhunter alerts ({{ alerts|length }})</p>
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Sensor</th>
+          <th>When</th>
+          <th>Severity</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr>
+          <td>{{ alert.sensor.name }}</td>
+          <td style="white-space: nowrap;">{{ alert.qmdl_timestamp|default:"—" }}</td>
+          <td><span class="badge badge-severity-{{ alert.severity|lower }}">{{ alert.severity }}</span></td>
+          <td>{{ alert.log_entry }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty">No alerts in this window.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
   <table class="report-table">
     <thead>
       <tr>

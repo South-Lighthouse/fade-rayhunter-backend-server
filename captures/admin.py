@@ -33,6 +33,12 @@ class RayhunterLogEntryAdmin(admin.ModelAdmin):
     list_filter = ["is_alert", "severity", "sensor"]
     search_fields = ["log_entry", "sensor__slug"]
     readonly_fields = ["raw_payload"]
+    show_full_result_count = False
+    # Without this, Django auto-applies a bare .select_related() (every
+    # reachable FK chain) because list_display includes the FK fields
+    # `session`/`sensor` -- on a quarter-million-row table that's the exact
+    # shape of bug that caused the RadioPacket admin 504 (see radio/admin.py).
+    list_select_related = []
 
     @admin.display(description="Log entry")
     def log_entry_preview(self, obj):
