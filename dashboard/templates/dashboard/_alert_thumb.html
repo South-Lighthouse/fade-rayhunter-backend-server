@@ -4,11 +4,25 @@ interactive Leaflet map -- see dashboard.alerts._tile_for_point for why: a
 plain <img> is what makes this reliable under PDF export and cheap at
 scale) linking out to the exact coordinate in Google Maps. Expects `alert`
 in context (a RayhunterLogEntry annotated by dashboard.alerts.alerts_for).
+
+The tile is a real <img>, not a CSS background-image, and the pin is an
+inline SVG, not a CSS background-color: most browsers only print
+background-image/background-color when the user manually enables
+"background graphics" in the print dialog (off by default), which silently
+drops both in PDF export -- confirmed against a real generated PDF (the
+tile was blank and the pin showed only its border, no fill). A foreground
+<img> and SVG fill are real painted content, not backgrounds, so both
+always print.
 {% endcomment %}
 {% if alert.thumb %}
   <a class="alert-thumb-link" href="{{ alert.maps_url }}" target="_blank" rel="noopener">
-    <div class="alert-thumb" style="background-image: url('{{ alert.thumb.tile_url }}'); background-size: 100% 100%;">
-      <span class="alert-thumb-pin" style="left: {{ alert.thumb.marker_left_pct }}%; top: {{ alert.thumb.marker_top_pct }}%;"></span>
+    <div class="alert-thumb">
+      <img class="alert-thumb-tile" src="{{ alert.thumb.tile_url }}" alt="" width="110" height="110">
+      <span class="alert-thumb-pin" style="left: {{ alert.thumb.marker_left_pct }}%; top: {{ alert.thumb.marker_top_pct }}%;">
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path d="M12 0C7.3 0 3.4 3.9 3.4 8.6c0 6.4 8.6 14.8 8.6 14.8s8.6-8.4 8.6-14.8C20.6 3.9 16.7 0 12 0z" fill="#dc2626" stroke="#fff" stroke-width="1.5"/>
+        </svg>
+      </span>
     </div>
     <span class="alert-thumb-caption">Open in Maps ↗</span>
   </a>

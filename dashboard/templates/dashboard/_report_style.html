@@ -33,13 +33,11 @@
   .alert-thumb-link { display: inline-block; text-decoration: none; }
   .alert-thumb {
     position: relative; width: 110px; height: 110px; border-radius: 6px;
-    background-color: #eee; background-repeat: no-repeat; overflow: hidden;
-    border: 1px solid #ddd;
+    overflow: hidden; border: 1px solid #ddd; background: #eee;
   }
+  .alert-thumb-tile { display: block; width: 100%; height: 100%; object-fit: cover; }
   .alert-thumb-pin {
-    position: absolute; width: 14px; height: 14px; margin: -14px 0 0 -7px;
-    border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
-    background: #dc2626; border: 2px solid #fff; box-shadow: 0 0 2px rgba(0,0,0,0.6);
+    position: absolute; width: 20px; height: 20px; transform: translate(-50%, -100%);
   }
   .alert-thumb-caption {
     display: block; font-size: 0.7rem; color: #79aec8; text-align: center; margin-top: 2px;
