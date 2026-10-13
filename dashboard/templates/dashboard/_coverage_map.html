@@ -4,11 +4,13 @@ dashboard.coverage.coverage_points_for -- already deduplicated to ~111m grid
 cells, so this never has to handle more than a few thousand points).
 `map_id` must be unique on the page if included more than once.
 
-Basemap tiles come from CartoDB, not OSM's own tile servers: OSM's tile
-usage policy blocks direct app use (confirmed -- requests from this page
-got a 403 "Access blocked" response), and CartoDB's free, no-key basemaps
-are the standard drop-in replacement for exactly this case. OSM remains the
-underlying map-data source (hence the attribution), just not the tile host.
+Basemap tiles come from Wikimedia's tile server, not OSM's own tile servers
+or CartoDB: OSM's tile usage policy blocks direct app use (confirmed -- got
+a 403 "Access blocked" response), and CartoDB's basemaps turned out to now
+require an API key (confirmed -- got an "API key required" watermark).
+Wikimedia's OSM-data tile server (maps.wikimedia.org) is free, requires no
+key, and is explicitly intended for this kind of light embedded use. OSM
+remains the underlying map-data source either way, hence the attribution.
 {% endcomment %}
 <div class="card">
   <p class="card-title">Geographic coverage ({{ coverage_points|length }} location{{ coverage_points|length|pluralize }})</p>
@@ -21,8 +23,8 @@ underlying map-data source (hence the attribution), just not the tile host.
       (function() {
         var points = JSON.parse(document.getElementById('{{ map_id }}').textContent);
         var map = L.map('{{ map_id }}-map');
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        L.tileLayer('https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: 19,
         }).addTo(map);
         var markers = points.map(function(p) {
