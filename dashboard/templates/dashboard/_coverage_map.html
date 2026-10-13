@@ -4,13 +4,16 @@ dashboard.coverage.coverage_points_for -- already deduplicated to ~111m grid
 cells, so this never has to handle more than a few thousand points).
 `map_id` must be unique on the page if included more than once.
 
-Basemap tiles come from Wikimedia's tile server, not OSM's own tile servers
-or CartoDB: OSM's tile usage policy blocks direct app use (confirmed -- got
-a 403 "Access blocked" response), and CartoDB's basemaps turned out to now
-require an API key (confirmed -- got an "API key required" watermark).
-Wikimedia's OSM-data tile server (maps.wikimedia.org) is free, requires no
-key, and is explicitly intended for this kind of light embedded use. OSM
-remains the underlying map-data source either way, hence the attribution.
+Basemap tiles come from Esri's free World Street Map service, not OSM's own
+tile servers, CartoDB, or Wikimedia: OSM's tile usage policy blocks direct
+app use (confirmed -- got a 403 "Access blocked" response), CartoDB's
+basemaps now require an API key (confirmed -- "API key required" watermark),
+and Wikimedia's tile server turned out to be restricted to Wikimedia's own
+properties (confirmed -- 403 on every real tile, the one earlier success was
+a stale cached edge hit, not genuine access). Esri's basemap tiles
+(server.arcgisonline.com) are free, require no key, and are a long-standing,
+widely used pattern for exactly this kind of embedding -- verified across
+zoom levels 5-19. Attribution still credits OSM/Esri per their terms.
 {% endcomment %}
 <div class="card">
   <p class="card-title">Geographic coverage ({{ coverage_points|length }} location{{ coverage_points|length|pluralize }})</p>
@@ -23,8 +26,8 @@ remains the underlying map-data source either way, hence the attribution.
       (function() {
         var points = JSON.parse(document.getElementById('{{ map_id }}').textContent);
         var map = L.map('{{ map_id }}-map');
-        L.tileLayer('https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}{r}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, HERE, Garmin, OpenStreetMap contributors',
           maxZoom: 19,
         }).addTo(map);
         var markers = points.map(function(p) {
