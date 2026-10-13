@@ -1,0 +1,17 @@
+{% comment %}
+Renders one alert's location as a small static map image (not an
+interactive Leaflet map -- see dashboard.alerts._tile_for_point for why: a
+plain <img> is what makes this reliable under PDF export and cheap at
+scale) linking out to the exact coordinate in Google Maps. Expects `alert`
+in context (a RayhunterLogEntry annotated by dashboard.alerts.alerts_for).
+{% endcomment %}
+{% if alert.thumb %}
+  <a class="alert-thumb-link" href="{{ alert.maps_url }}" target="_blank" rel="noopener">
+    <div class="alert-thumb" style="background-image: url('{{ alert.thumb.tile_url }}'); background-size: 100% 100%;">
+      <span class="alert-thumb-pin" style="left: {{ alert.thumb.marker_left_pct }}%; top: {{ alert.thumb.marker_top_pct }}%;"></span>
+    </div>
+    <span class="alert-thumb-caption">Open in Maps ↗</span>
+  </a>
+{% else %}
+  <span class="chart-empty">No GPS fix</span>
+{% endif %}

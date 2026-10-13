@@ -45,6 +45,7 @@
           <th>When</th>
           <th>Severity</th>
           <th>Detail</th>
+          <th>Location</th>
         </tr>
       </thead>
       <tbody>
@@ -54,9 +55,10 @@
           <td style="white-space: nowrap;">{{ alert.qmdl_timestamp|default:"—" }}</td>
           <td><span class="badge badge-severity-{{ alert.severity|lower }}">{{ alert.severity }}</span></td>
           <td>{{ alert.log_entry }}</td>
+          <td>{% include "dashboard/_alert_thumb.html" %}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="4" class="empty">No alerts in this window.</td></tr>
+        <tr><td colspan="5" class="empty">No alerts in this window.</td></tr>
         {% endfor %}
       </tbody>
     </table>
