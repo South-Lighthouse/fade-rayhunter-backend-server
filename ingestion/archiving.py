@@ -21,6 +21,7 @@ import shutil
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib import admin
 from django.utils import timezone
 
 
@@ -39,6 +40,41 @@ def any_batch_pending():
         IngestedFile.objects.filter(**pending).exists()
         or RadioCapture.objects.filter(**pending).exists()
     )
+
+
+class ArchiveStageFilter(admin.SimpleListFilter):
+    """
+    Changelist filter for "where is this row in the archive lifecycle",
+    shared by IngestedFileAdmin and RadioCaptureAdmin -- both models use the
+    exact same archived_at/reclaimed_at pair with identical semantics (see
+    module docstring), so one filter serves both with no per-model
+    parameterization needed.
+
+    Added specifically so "waiting for pickup" (archived, not reclaimed) is
+    one click to isolate -- after archiving a large batch, those rows are
+    scattered across however many changelist pages the full table spans,
+    making them hard to re-select for the reclaim step otherwise.
+    """
+
+    title = "archive stage"
+    parameter_name = "archive_stage"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("waiting_pickup", "Waiting for pickup (archived, not reclaimed)"),
+            ("not_archived", "Not yet archived"),
+            ("reclaimed", "Reclaimed"),
+        ]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "waiting_pickup":
+            return queryset.filter(archived_at__isnull=False, reclaimed_at__isnull=True)
+        if value == "not_archived":
+            return queryset.filter(archived_at__isnull=True)
+        if value == "reclaimed":
+            return queryset.filter(reclaimed_at__isnull=False)
+        return queryset
 
 
 def move_to_archive(queryset, *, source_root, archive_subdir, path_field, eligible_statuses, status_field="status"):

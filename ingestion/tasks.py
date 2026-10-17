@@ -53,3 +53,57 @@ def scan_upload_directory():
 
     if registered:
         logger.info("scan_upload_directory: registered %d new file(s)", registered)
+
+
+@shared_task(name="ingestion.tasks.archive_ingested_files")
+def archive_ingested_files(pks):
+    """
+    Background counterpart to IngestedFileAdmin.archive_action -- moves each
+    eligible file from UPLOAD_ROOT into ARCHIVE_ROOT/uploads and stamps
+    archived_at. Queued from the admin action rather than run inline: this
+    can touch thousands of files of real disk I/O, and nginx's default
+    60s proxy_read_timeout on the admin's own path (unlike /webdav/, which
+    explicitly sets 3600s for uploads) 504s the browser well before a large
+    batch finishes, even though gunicorn keeps running regardless --
+    confirmed against a real production timeout. move_to_archive() commits
+    archived_at per row as it goes, so progress is visible live via the
+    dashboard's archive/pickup counts without needing to poll this task.
+
+    The ArchiveBatchPending check that matters for the common case already
+    happened synchronously in the admin action (see archive_action) so the
+    user gets an immediate error instead of a silent background failure;
+    this one only catches the rare race of two archive clicks in quick
+    succession.
+    """
+    from django.conf import settings
+
+    from .archiving import ArchiveBatchPending, move_to_archive
+    from .models import IngestedFile
+
+    queryset = IngestedFile.objects.filter(pk__in=pks)
+    try:
+        archived, missing = move_to_archive(
+            queryset,
+            source_root=settings.UPLOAD_ROOT,
+            archive_subdir="uploads",
+            path_field="relative_path",
+            eligible_statuses=[IngestedFile.STATUS_DONE, IngestedFile.STATUS_ERROR],
+        )
+    except ArchiveBatchPending as exc:
+        logger.warning("ingestion: archive batch refused -- %s", exc)
+        return
+    logger.info("ingestion: archived %d file(s), %d missing", archived, missing)
+
+
+@shared_task(name="ingestion.tasks.reclaim_ingested_files")
+def reclaim_ingested_files(pks):
+    """Background counterpart to IngestedFileAdmin.reclaim_action -- see
+    archive_ingested_files for why this runs as a task rather than inline."""
+    from .archiving import reclaim_from_archive
+    from .models import IngestedFile
+
+    queryset = IngestedFile.objects.filter(pk__in=pks)
+    deleted, missing, freed = reclaim_from_archive(
+        queryset, archive_subdir="uploads", path_field="relative_path"
+    )
+    logger.info("ingestion: reclaimed %d file(s), freed %d bytes, %d missing", deleted, freed, missing)

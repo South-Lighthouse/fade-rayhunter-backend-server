@@ -44,3 +44,45 @@ def process_pending_radio_captures():
 
     if processed or errors:
         logger.info("radio: processed %d capture(s), %d error(s)", processed, errors)
+
+
+@shared_task(name="radio.tasks.archive_radio_captures")
+def archive_radio_captures(pks):
+    """Background counterpart to RadioCaptureAdmin.archive_action -- see
+    ingestion.tasks.archive_ingested_files for why this runs as a task
+    rather than inline (same reasoning, same ArchiveBatchPending split
+    between the admin's synchronous pre-check and this task's race guard)."""
+    from django.conf import settings
+
+    from ingestion.archiving import ArchiveBatchPending, move_to_archive
+
+    from .models import RadioCapture
+
+    queryset = RadioCapture.objects.filter(pk__in=pks)
+    try:
+        archived, missing = move_to_archive(
+            queryset,
+            source_root=settings.RADIO_PCAP_ROOT,
+            archive_subdir="radio_pcaps",
+            path_field="pcap_path",
+            eligible_statuses=[RadioCapture.STATUS_DONE],
+        )
+    except ArchiveBatchPending as exc:
+        logger.warning("radio: archive batch refused -- %s", exc)
+        return
+    logger.info("radio: archived %d capture(s), %d missing", archived, missing)
+
+
+@shared_task(name="radio.tasks.reclaim_radio_captures")
+def reclaim_radio_captures(pks):
+    """Background counterpart to RadioCaptureAdmin.reclaim_action -- see
+    ingestion.tasks.archive_ingested_files for why this runs as a task."""
+    from ingestion.archiving import reclaim_from_archive
+
+    from .models import RadioCapture
+
+    queryset = RadioCapture.objects.filter(pk__in=pks)
+    deleted, missing, freed = reclaim_from_archive(
+        queryset, archive_subdir="radio_pcaps", path_field="pcap_path"
+    )
+    logger.info("radio: reclaimed %d capture(s), freed %d bytes, %d missing", deleted, freed, missing)

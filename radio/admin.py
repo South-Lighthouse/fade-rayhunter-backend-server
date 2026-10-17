@@ -1,10 +1,9 @@
-from django.conf import settings
 from django.contrib import admin, messages
-from django.template.defaultfilters import filesizeformat
 
-from ingestion.archiving import ArchiveBatchPending, move_to_archive, reclaim_from_archive
+from ingestion.archiving import ArchiveStageFilter, any_batch_pending
 
 from .models import RadioCapture, RadioPacket
+from .tasks import archive_radio_captures, reclaim_radio_captures
 
 
 @admin.register(RadioCapture)
@@ -19,37 +18,41 @@ class RadioCaptureAdmin(admin.ModelAdmin):
         "archived_at",
         "reclaimed_at",
     ]
-    list_filter = ["status"]
+    list_filter = ["status", ArchiveStageFilter]
     search_fields = ["session__session_id", "session__sensor__slug"]
     readonly_fields = ["created_at", "processed_at", "archived_at", "reclaimed_at"]
     actions = ["archive_action", "reclaim_action"]
 
     @admin.action(description="Archive selected captures (move PCAP to archive dir)")
     def archive_action(self, request, queryset):
-        try:
-            archived, missing = move_to_archive(
-                queryset,
-                source_root=settings.RADIO_PCAP_ROOT,
-                archive_subdir="radio_pcaps",
-                path_field="pcap_path",
-                eligible_statuses=[RadioCapture.STATUS_DONE],
+        # See ingestion.admin.IngestedFileAdmin.archive_action for why this
+        # queues a background task instead of moving files inline, and why
+        # the pending-batch check stays synchronous here.
+        if any_batch_pending():
+            self.message_user(
+                request,
+                "A previous archive batch hasn't been reclaimed yet -- pull everything from "
+                "the archive dir and run the reclaim action first.",
+                messages.ERROR,
             )
-        except ArchiveBatchPending as exc:
-            self.message_user(request, str(exc), messages.ERROR)
             return
-        msg = f"Archived {archived} capture(s)."
-        if missing:
-            msg += f" {missing} had no PCAP file on disk (DB-only, marked archived anyway)."
-        self.message_user(request, msg, messages.SUCCESS)
+        pks = list(queryset.values_list("pk", flat=True))
+        archive_radio_captures.delay(pks)
+        self.message_user(
+            request,
+            f"Archiving {len(pks)} capture(s) in the background -- watch the dashboard's "
+            "archive status card for progress.",
+            messages.SUCCESS,
+        )
 
     @admin.action(description="Reclaim space for archived captures (delete from archive dir)")
     def reclaim_action(self, request, queryset):
-        deleted, missing, freed = reclaim_from_archive(
-            queryset, archive_subdir="radio_pcaps", path_field="pcap_path"
-        )
+        pks = list(queryset.values_list("pk", flat=True))
+        reclaim_radio_captures.delay(pks)
         self.message_user(
             request,
-            f"Deleted {deleted} file(s), freed {filesizeformat(freed)}. {missing} were already missing.",
+            f"Reclaiming {len(pks)} capture(s) in the background -- watch the dashboard's "
+            "archive status card for progress.",
             messages.SUCCESS,
         )
 

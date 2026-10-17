@@ -3,14 +3,12 @@ import os
 from django.conf import settings
 from django.contrib import admin, messages
 from django.http import FileResponse, Http404
-from django.template.defaultfilters import filesizeformat
 from django.urls import path, reverse
 from django.utils.html import format_html
 
-from .archiving import ArchiveBatchPending, move_to_archive, reclaim_from_archive
+from .archiving import ArchiveStageFilter, any_batch_pending
 from .models import IngestedFile
-
-ELIGIBLE_ARCHIVE_STATUSES = [IngestedFile.STATUS_DONE, IngestedFile.STATUS_ERROR]
+from .tasks import archive_ingested_files, reclaim_ingested_files
 
 
 @admin.register(IngestedFile)
@@ -26,37 +24,43 @@ class IngestedFileAdmin(admin.ModelAdmin):
         "reclaimed_at",
     ]
     list_display_links = ["filename"]
-    list_filter = ["status", "sensor"]
+    list_filter = ["status", "sensor", ArchiveStageFilter]
     search_fields = ["filename", "relative_path"]
     readonly_fields = ["uploaded_at", "processed_at", "archived_at", "reclaimed_at"]
     actions = ["archive_action", "reclaim_action"]
 
     @admin.action(description="Archive selected files (move to archive dir)")
     def archive_action(self, request, queryset):
-        try:
-            archived, missing = move_to_archive(
-                queryset,
-                source_root=settings.UPLOAD_ROOT,
-                archive_subdir="uploads",
-                path_field="relative_path",
-                eligible_statuses=ELIGIBLE_ARCHIVE_STATUSES,
+        # The actual move runs in the background (see ingestion.tasks) --
+        # large batches were 504ing the admin request (nginx's default
+        # location has no extended timeout, unlike /webdav/). The pending-
+        # batch check stays synchronous here, cheap, so the common case
+        # still gets an immediate error instead of a silent queued failure.
+        if any_batch_pending():
+            self.message_user(
+                request,
+                "A previous archive batch hasn't been reclaimed yet -- pull everything from "
+                "the archive dir and run the reclaim action first.",
+                messages.ERROR,
             )
-        except ArchiveBatchPending as exc:
-            self.message_user(request, str(exc), messages.ERROR)
             return
-        msg = f"Archived {archived} file(s)."
-        if missing:
-            msg += f" {missing} had no file on disk (DB-only, marked archived anyway)."
-        self.message_user(request, msg, messages.SUCCESS)
+        pks = list(queryset.values_list("pk", flat=True))
+        archive_ingested_files.delay(pks)
+        self.message_user(
+            request,
+            f"Archiving {len(pks)} file(s) in the background -- watch the dashboard's "
+            "archive status card for progress.",
+            messages.SUCCESS,
+        )
 
     @admin.action(description="Reclaim space for archived files")
     def reclaim_action(self, request, queryset):
-        deleted, missing, freed = reclaim_from_archive(
-            queryset, archive_subdir="uploads", path_field="relative_path"
-        )
+        pks = list(queryset.values_list("pk", flat=True))
+        reclaim_ingested_files.delay(pks)
         self.message_user(
             request,
-            f"Deleted {deleted} file(s), freed {filesizeformat(freed)}. {missing} were already missing.",
+            f"Reclaiming {len(pks)} file(s) in the background -- watch the dashboard's "
+            "archive status card for progress.",
             messages.SUCCESS,
         )
 

@@ -49,14 +49,18 @@
         <span class="summary-value">{{ disk.radio_ready_count }}</span>
         <span class="summary-label">PCAPs ready to archive ({{ disk.radio_ready_bytes|filesizeformat }})</span>
       </div>
-      <div class="summary-card{% if disk.ingested_waiting_count %} attention{% endif %}">
-        <span class="summary-value">{{ disk.ingested_waiting_count }}</span>
-        <span class="summary-label">Uploads waiting for pickup ({{ disk.ingested_waiting_bytes|filesizeformat }})</span>
-      </div>
-      <div class="summary-card{% if disk.radio_waiting_count %} attention{% endif %}">
-        <span class="summary-value">{{ disk.radio_waiting_count }}</span>
-        <span class="summary-label">PCAPs waiting for pickup ({{ disk.radio_waiting_bytes|filesizeformat }})</span>
-      </div>
+      <a class="summary-card-link" href="{% url 'admin:ingestion_ingestedfile_changelist' %}?archive_stage=waiting_pickup">
+        <div class="summary-card{% if disk.ingested_waiting_count %} attention{% endif %}">
+          <span class="summary-value">{{ disk.ingested_waiting_count }}</span>
+          <span class="summary-label">Uploads waiting for pickup ({{ disk.ingested_waiting_bytes|filesizeformat }})</span>
+        </div>
+      </a>
+      <a class="summary-card-link" href="{% url 'admin:radio_radiocapture_changelist' %}?archive_stage=waiting_pickup">
+        <div class="summary-card{% if disk.radio_waiting_count %} attention{% endif %}">
+          <span class="summary-value">{{ disk.radio_waiting_count }}</span>
+          <span class="summary-label">PCAPs waiting for pickup ({{ disk.radio_waiting_bytes|filesizeformat }})</span>
+        </div>
+      </a>
     </div>
   </div>
 
