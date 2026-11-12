@@ -25,20 +25,42 @@ def annotate_pulse(sensor_qs, stale_hours):
     Annotates each sensor in the queryset with last_upload, last_telemetry,
     last_seen, hours_since_seen and a status ("ok" / "stale" / "never").
 
-    Two Max() aggregates in a single query rather than per-sensor lookups,
-    so this stays cheap regardless of sensor count.
+    Deliberately two SEPARATE single-relation GROUP BY queries, not one
+    .annotate(Max("ingested_files__..."), Max("telemetry__...")) call:
+    combining Max() over two different one-to-many relations in a single
+    annotate() makes Django LEFT JOIN the sensor row to BOTH tables at once,
+    producing the cross product of (matching uploads) x (matching telemetry)
+    per sensor before GROUP BY collapses it -- for a sensor with thousands
+    of uploads and hundreds of thousands of telemetry heartbeats, that's
+    tens of millions of intermediate join rows for one sensor alone.
+    Confirmed as the cause of a 68s dashboard load (504 in production) --
+    invisible in dev, which has zero TelemetryRecord rows, so the cross
+    product was always empty there. Split into separate per-table queries,
+    each a plain GROUP BY MAX that uses the (sensor, timestamp) composite
+    indexes on IngestedFile/TelemetryRecord cheaply, with no join blowup.
     """
-    sensors = list(
-        sensor_qs.annotate(
-            last_upload=Max("ingested_files__uploaded_at"),
-            last_telemetry=Max("telemetry__received_at"),
-        )
+    sensors = list(sensor_qs)
+    sensor_ids = [s.pk for s in sensors]
+
+    last_upload_by_id = dict(
+        IngestedFile.objects.filter(sensor_id__in=sensor_ids)
+        .values("sensor_id")
+        .annotate(last=Max("uploaded_at"))
+        .values_list("sensor_id", "last")
+    )
+    last_telemetry_by_id = dict(
+        TelemetryRecord.objects.filter(sensor_id__in=sensor_ids)
+        .values("sensor_id")
+        .annotate(last=Max("received_at"))
+        .values_list("sensor_id", "last")
     )
 
     now = timezone.now()
     threshold = timedelta(hours=stale_hours)
 
     for sensor in sensors:
+        sensor.last_upload = last_upload_by_id.get(sensor.pk)
+        sensor.last_telemetry = last_telemetry_by_id.get(sensor.pk)
         candidates = [t for t in (sensor.last_upload, sensor.last_telemetry) if t is not None]
         last_seen = max(candidates) if candidates else None
         sensor.last_seen = last_seen
