@@ -1,7 +1,6 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
 
-{% block title %}{{ country.name }} report | {{ site_title|default:_('Django site admin') }}{% endblock %}
+{% block title %}{{ country.name }} report_{{ start_date|date:"Y.m.d" }}-{{ end_date|date:"Y.m.d" }}{% endblock %}
 
 {% block content %}
 {% include "dashboard/_report_style.html" %}

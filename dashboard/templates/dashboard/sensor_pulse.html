@@ -1,7 +1,6 @@
 {% extends "admin/base_site.html" %}
-{% load i18n %}
 
-{% block title %}{{ sensor.name }} pulse | {{ site_title|default:_('Django site admin') }}{% endblock %}
+{% block title %}{{ sensor.name }} pulse_{{ start_date|date:"Y.m.d" }}-{{ end_date|date:"Y.m.d" }}{% endblock %}
 
 {% block content %}
 {% include "dashboard/_report_style.html" %}
