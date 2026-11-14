@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+
+{% comment %}
+Project override of Django's own admin/base_site.html (copied verbatim
+from django/contrib/admin/templates/admin/base_site.html, Django 4.2) --
+only addition is the nav-global block, used to put a "Dashboard" link in
+the header on every admin page, not just the index. Any dashboard template
+that does {% extends "admin/base_site.html" %} and defines its own
+{% block title %} still overrides this one's title as normal; this file
+only needs to replicate Django's defaults for the blocks it doesn't touch,
+so nothing else about stock admin pages changes.
+{% endcomment %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}
+{% if user.is_active and user.is_staff %}
+<div style="background: #2b2b2b; padding: 6px 40px;">
+  <a href="{% url 'admin:sensors_sensor_dashboard' %}" style="color: #fff; text-decoration: none; font-size: 0.8125rem; font-weight: 600;">&#128202; Dashboard</a>
+</div>
+{% endif %}
+{% endblock %}
