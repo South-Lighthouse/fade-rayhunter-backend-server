@@ -1,4 +1,10 @@
+import os
+
+from django.conf import settings
 from django.contrib import admin, messages
+from django.http import FileResponse, Http404
+from django.urls import path, reverse
+from django.utils.html import format_html
 
 from ingestion.archiving import ArchiveStageFilter, any_batch_pending
 
@@ -9,6 +15,7 @@ from .tasks import archive_radio_captures, reclaim_radio_captures
 @admin.register(RadioCapture)
 class RadioCaptureAdmin(admin.ModelAdmin):
     list_display = [
+        "download_link",
         "session",
         "status",
         "packet_count",
@@ -18,10 +25,47 @@ class RadioCaptureAdmin(admin.ModelAdmin):
         "archived_at",
         "reclaimed_at",
     ]
+    list_display_links = ["session"]
     list_filter = ["status", ArchiveStageFilter]
     search_fields = ["session__session_id", "session__sensor__slug"]
     readonly_fields = ["created_at", "processed_at", "archived_at", "reclaimed_at"]
     actions = ["archive_action", "reclaim_action"]
+
+    @admin.display(description="")
+    def download_link(self, obj):
+        if not obj.pcap_path:
+            return ""
+        url = reverse("admin:radio_radiocapture_download", args=[obj.pk])
+        return format_html('<a href="{}" title="Download">⬇</a>', url)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "<int:pk>/download/",
+                self.admin_site.admin_view(self.download_view),
+                name="radio_radiocapture_download",
+            ),
+        ]
+        return custom + urls
+
+    def download_view(self, request, pk):
+        obj = RadioCapture.objects.filter(pk=pk).first()
+        if obj is None or not obj.pcap_path:
+            raise Http404
+        # archived (not yet reclaimed) PCAPs have been moved out of
+        # RADIO_PCAP_ROOT into ARCHIVE_ROOT -- see ingestion/archiving.py
+        # (shared by this app and `ingestion`).
+        if obj.archived_at and not obj.reclaimed_at:
+            root = os.path.join(settings.ARCHIVE_ROOT, "radio_pcaps")
+        else:
+            root = settings.RADIO_PCAP_ROOT
+        full_path = os.path.join(root, obj.pcap_path)
+        if not os.path.isfile(full_path):
+            raise Http404
+        return FileResponse(
+            open(full_path, "rb"), as_attachment=True, filename=os.path.basename(obj.pcap_path)
+        )
 
     @admin.action(description="Archive selected captures (move PCAP to archive dir)")
     def archive_action(self, request, queryset):

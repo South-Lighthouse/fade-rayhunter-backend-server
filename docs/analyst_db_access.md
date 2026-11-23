@@ -10,17 +10,47 @@ host firewall is misconfigured. The analyst reaches it through an SSH tunnel.
 
 ## 1. Create a read-only MySQL user (once)
 
+**Do not use `GRANT SELECT ON fade.*`.** This database also holds
+`auth_user` (password hashes), `django_session` (live session keys),
+`otp_static_staticdevice`/`otp_static_statictoken`/`otp_totp_totpdevice`
+(2FA secrets -- leaking these would let someone compute valid login codes),
+and `sensors_sensor.webdav_password`/`api_key` (sensor credentials). A
+blanket grant hands the analyst all of it. Grant only the tables analysis
+actually needs, and for `sensors_sensor` specifically, only the non-secret
+columns:
+
 ```bash
 docker compose exec db mysql -u root -p
 ```
 ```sql
 CREATE USER 'analyst'@'%' IDENTIFIED BY '<pick a strong password>';
-GRANT SELECT ON fade.* TO 'analyst'@'%';
+
+GRANT SELECT ON fade.captures_monitoringsession TO 'analyst'@'%';
+GRANT SELECT ON fade.captures_rayhunterlogentry TO 'analyst'@'%';
+GRANT SELECT ON fade.ingestion_ingestedfile TO 'analyst'@'%';
+GRANT SELECT ON fade.radio_coveragepoint TO 'analyst'@'%';
+GRANT SELECT ON fade.radio_radiocapture TO 'analyst'@'%';
+GRANT SELECT ON fade.radio_radiopacket TO 'analyst'@'%';
+GRANT SELECT ON fade.sensors_country TO 'analyst'@'%';
+GRANT SELECT ON fade.sensors_sensortype TO 'analyst'@'%';
+GRANT SELECT ON fade.telemetry_telemetryrecord TO 'analyst'@'%';
+GRANT SELECT (id, name, slug, is_active, notes, created_at, updated_at, sensor_type_id, country_id)
+  ON fade.sensors_sensor TO 'analyst'@'%';
+
 FLUSH PRIVILEGES;
 ```
 `'%'` is fine here because the user can only ever reach this account through
 the loopback-bound port via an SSH tunnel -- it's never reachable as
 `'analyst'@'<their-ip>'` directly from the internet.
+
+**Verified** (2026-11-18, against a real MySQL 8 instance): reads against
+the granted tables/columns succeed; `INSERT`/`DROP` are rejected;
+`SELECT webdav_password FROM sensors_sensor` is rejected; `auth_user` and
+all three `otp_*` tables are completely inaccessible (`SELECT command
+denied ... for table`); the join query in the starter notebook below
+returns correct data. If new tables with sensitive columns are added later
+(e.g. a future case-management feature), add them to the exclusion list
+above before granting anything broader.
 
 ## 2. Give the analyst a tunnel-only SSH key (once per analyst)
 
@@ -46,40 +76,37 @@ tunnel has to be opened programmatically in the notebook, not via a
 terminal `ssh -L` command. Same security model either way -- MySQL is never
 exposed publicly.
 
-```python
-!pip install sshtunnel pymysql sqlalchemy -q
+**`docs/analyst_starter_notebook.ipynb`** in this repo is a ready-to-use
+notebook implementing exactly this -- credentials loaded from Colab's
+Secrets panel (never pasted into a cell), the tunnel, the connection, and
+two working example queries. Test it yourself before handing it to anyone:
 
-# Paste the private key into Colab's Secrets (key icon in the left sidebar),
-# not directly in a cell -- keeps it out of the notebook's saved output.
-from google.colab import userdata
-import tempfile, os
+1. Go to [colab.research.google.com](https://colab.research.google.com),
+   sign in, then File → Upload notebook → pick
+   `docs/analyst_starter_notebook.ipynb` from this repo.
+2. Follow the notebook's own "Step 1" cell -- it walks through adding your
+   SSH key and DB password to Colab's Secrets panel (the key icon in the
+   left sidebar), including the "Notebook access" toggle that's easy to
+   miss on a first try.
+3. Fill in the `SERVER_HOST` / `SSH_USERNAME` config cell with your real
+   server's details.
+4. Runtime → Run all. If the connectivity-check cell prints `1`, you're
+   through the tunnel and authenticated; the two example-query cells below
+   it should return real data.
 
-key_path = tempfile.mktemp()
-with open(key_path, "w") as f:
-    f.write(userdata.get("ANALYST_SSH_KEY"))
-os.chmod(key_path, 0o600)
+Once you've confirmed it works end to end, generate a **separate** SSH
+keypair and DB password for the actual analyst (per step 2 above -- don't
+reuse the one you tested with), and send them:
+- the notebook file itself (or a link to it, e.g. shared via Google Drive)
+- the analyst's own private key
+- the analyst's own DB password
+- `SERVER_HOST`/`SSH_USERNAME` to fill into the config cell (not secret,
+  fine in the same message as the notebook)
 
-from sshtunnel import SSHTunnelForwarder
-
-tunnel = SSHTunnelForwarder(
-    ("<server-ip-or-hostname>", 22),
-    ssh_username="<the linux user the key is installed under>",
-    ssh_pkey=key_path,
-    remote_bind_address=("127.0.0.1", 3306),
-)
-tunnel.start()
-
-from sqlalchemy import create_engine
-import pandas as pd
-
-engine = create_engine(
-    f"mysql+pymysql://analyst:<password>@127.0.0.1:{tunnel.local_bind_port}/fade"
-)
-df = pd.read_sql("SELECT COUNT(*) FROM radio_radiopacket", engine)
-df
-
-# tunnel.stop() when done
-```
+Send the key and the password through separate channels (e.g. one in an
+encrypted message, the other read aloud on a call) -- same principle as any
+credential handoff, since anyone who intercepts only one of the two still
+can't connect.
 
 ## Notes
 
@@ -97,3 +124,8 @@ df
 - Revoke access by removing the `authorized_keys` line and/or
   `DROP USER 'analyst'@'%';` -- either alone is sufficient, both together is
   cleanest.
+- If a future feature adds a new table with sensitive columns, it's
+  invisible to the analyst by default (nothing is granted automatically) --
+  only add it to the GRANT list in step 1 if analysis genuinely needs it,
+  and re-check for secret columns first, the same way `sensors_sensor` was
+  checked here.
